@@ -1,0 +1,8 @@
+{
+  "name": "backend",
+  "version": 3,
+  "skills": ["Spring Boot", "Java", "PostgreSQL", "Docker", "REST APIs", "Git", "Linux", "Microservices"],
+  "experience": "backend",
+  "ats_score": null,
+  "ats_analysis": ""
+}

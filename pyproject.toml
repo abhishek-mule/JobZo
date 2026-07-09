@@ -1,0 +1,28 @@
+[project]
+name = "jobzo"
+version = "0.1.0"
+description = "Personal AI-powered job application assistant"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "httpx>=0.27",
+    "playwright>=1.40",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "feedparser>=6.0",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "rich>=13.0",
+    "apscheduler>=3.10",
+    "google-api-python-client>=2.0",
+    "google-auth-httplib2>=0.2",
+    "google-auth-oauthlib>=1.0",
+]
+
+[project.scripts]
+jobzo = "cli.main:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,21 @@
+rss:
+  enabled: true
+  urls:
+    - https://hnrss.org/jobs
+
+company_pages:
+  enabled: false
+  targets: []
+
+telegram:
+  enabled: false
+  channels: []
+
+manual:
+  enabled: true
+
+wellfound:
+  enabled: false
+
+linkedin:
+  enabled: false

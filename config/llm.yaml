@@ -1,0 +1,12 @@
+provider: ollama
+ollama:
+  model: tinyllama
+  base_url: http://localhost:11434/v1
+openai:
+  model: gpt-4o-mini
+  api_key: ${OPENAI_API_KEY}
+
+fallback:
+  enabled: true
+  provider: openai
+  min_quality_threshold: 85

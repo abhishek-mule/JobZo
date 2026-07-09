@@ -1,0 +1,14 @@
+Given this job, output ONLY a JSON object with these fields:
+- score: 0-100 (match quality)
+- strategy: "apply_now", "get_referral", "cold_email", "skip", or "watch"
+- reasoning: short explanation (max 20 words)
+- missing_skills: list of skills user lacks
+- recommended_resume: best resume match
+
+JSON rules:
+- score >= 85 → strategy "apply_now"
+- score 70-84 → "get_referral" or "cold_email"  
+- score < 50 → "skip"
+- only output valid JSON, nothing else
+
+User is a junior engineer (0-2yr) with: Spring Boot, Java, React, TypeScript, PostgreSQL, Docker, Git, REST APIs.

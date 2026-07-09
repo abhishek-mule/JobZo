@@ -1,0 +1,26 @@
+resumes:
+  backend:
+    file: resumes/backend_v3.pdf
+    metadata: resumes/backend_v3.json
+    active: true
+  fullstack:
+    file: resumes/fullstack_v4.pdf
+    metadata: resumes/fullstack_v4.json
+    active: true
+  frontend:
+    file: resumes/frontend_v2.pdf
+    metadata: resumes/frontend_v2.json
+    active: true
+  java:
+    file: resumes/java_v1.pdf
+    metadata: resumes/java_v1.json
+    active: true
+
+scoring:
+  skill_overlap_weight: 0.30
+  experience_weight: 0.20
+  freshness_weight: 0.35
+  priority_weight: 0.15
+  rules_first: true
+  llm_threshold: 70
+  max_llm_calls_per_run: 50

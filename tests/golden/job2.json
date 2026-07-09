@@ -1,0 +1,7 @@
+{
+  "score": 12,
+  "strategy": "skip",
+  "reasoning": "Senior role requiring 10+ years experience, on-site in Mountain View. Stack mismatch (C++, Go, Rust vs Java/Spring). Low match for junior profile.",
+  "missing_skills": ["C++", "Go", "Rust", "distributed systems", "10+ years experience"],
+  "recommended_resume": ""
+}
