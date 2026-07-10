@@ -23,6 +23,9 @@ dependencies = [
 [project.scripts]
 jobzo = "cli.main:app"
 
+[tool.setuptools.packages.find]
+include = ["ai*", "ats*", "browser*", "cli*", "database*", "providers*", "services*", "tests*", "tracker*"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

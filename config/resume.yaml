@@ -7,13 +7,13 @@ resumes:
     file: resumes/fullstack_v4.pdf
     metadata: resumes/fullstack_v4.json
     active: true
-  frontend:
-    file: resumes/frontend_v2.pdf
-    metadata: resumes/frontend_v2.json
-    active: true
   java:
     file: resumes/java_v1.pdf
     metadata: resumes/java_v1.json
+    active: true
+  sde:
+    file: resumes/sde_v1.pdf
+    metadata: resumes/sde_v1.json
     active: true
 
 scoring:

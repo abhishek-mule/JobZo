@@ -1,0 +1,22 @@
+{
+  "name": "sde",
+  "version": 1,
+  "skills": [
+    "Java",
+    "Spring Boot",
+    "Python",
+    "FastAPI",
+    "PostgreSQL",
+    "Docker",
+    "REST APIs",
+    "Git",
+    "Linux",
+    "Microservices",
+    "TypeScript",
+    "Next.js",
+    "React"
+  ],
+  "experience": "sde",
+  "ats_score": null,
+  "ats_analysis": ""
+}

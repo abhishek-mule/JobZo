@@ -20,6 +20,12 @@ class JobProvider(ABC):
         ...
 
     def normalize(self, raw: RawJob) -> dict:
+        posted_at = raw.data.get("posted_at")
+        if isinstance(posted_at, str):
+            try:
+                posted_at = datetime.fromisoformat(posted_at)
+            except (ValueError, TypeError):
+                posted_at = None
         return {
             "company": raw.data.get("company", ""),
             "title": raw.data.get("title", ""),
@@ -30,6 +36,6 @@ class JobProvider(ABC):
             "skills": raw.data.get("skills", []),
             "url": raw.data.get("url", ""),
             "source": raw.source,
-            "posted_at": raw.data.get("posted_at"),
+            "posted_at": posted_at,
             "remote": raw.data.get("remote", False),
         }

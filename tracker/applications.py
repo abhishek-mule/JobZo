@@ -56,6 +56,10 @@ def transition_status(app_id: str, new_status: str) -> bool:
             logger.error("Application %s not found", app_id)
             return False
 
+        if app.status == new_status:
+            logger.debug("Already %s — no-op", new_status)
+            return True
+
         allowed = VALID_TRANSITIONS.get(app.status, [])
         if new_status not in allowed:
             logger.error(

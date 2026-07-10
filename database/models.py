@@ -84,3 +84,33 @@ class Task(Base):
     done = Column(Boolean, default=False)
     notes = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PageCache(Base):
+    __tablename__ = "page_cache"
+
+    url = Column(String, primary_key=True)
+    etag = Column(String, default="")
+    last_modified = Column(String, default="")
+    html_hash = Column(String, default="")
+    status = Column(Integer, default=200)
+    fetched_at = Column(DateTime, default=datetime.utcnow)
+    parser = Column(String, default="")
+    jobs_found = Column(Integer, default=0)
+    html = Column(Text, default="")
+
+
+class ProviderHealth(Base):
+    __tablename__ = "provider_health"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    provider = Column(String, nullable=False, index=True)
+    company = Column(String, default="")
+    last_success = Column(DateTime, nullable=True)
+    last_error = Column(DateTime, nullable=True)
+    error_message = Column(Text, default="")
+    jobs_found = Column(Integer, default=0)
+    avg_response_time = Column(Integer, default=0)
+    failure_count = Column(Integer, default=0)
+    consecutive_failures = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)

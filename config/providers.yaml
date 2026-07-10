@@ -4,8 +4,10 @@ rss:
     - https://hnrss.org/jobs
 
 company_pages:
-  enabled: false
-  targets: []
+  enabled: true
+  concurrency: 5
+  fetch:
+    cache_ttl_hours: 6
 
 telegram:
   enabled: false
