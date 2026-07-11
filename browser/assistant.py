@@ -76,9 +76,9 @@ FIELD_MAP = {
     },
     "current_role": {
         "label": "Current role",
-        "aria": ["current-role", "job-title", "current-title"],
-        "name": ["current-role", "title", "job-title", "current-title", "position"],
-        "placeholder": ["Current role", "Job title", "Title", "Position"],
+        "aria": ["current-role", "job-title", "current-title", "current-company"],
+        "name": ["current-role", "title", "job-title", "current-title", "position", "org"],
+        "placeholder": ["Current role", "Job title", "Title", "Position", "Current company"],
     },
     "years_experience": {
         "label": "Years of experience",

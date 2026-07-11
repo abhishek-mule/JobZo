@@ -2,10 +2,12 @@ import re
 
 from ats.base import ATSParser
 from ats.greenhouse import GreenhouseParser
+from ats.lever import LeverParser
 from ats.generic import GenericParser
 
 PARSER_REGISTRY: list[tuple[str, type[ATSParser]]] = [
     (r"boards\.greenhouse\.io", GreenhouseParser),
+    (r"jobs\.lever\.co", LeverParser),
 ]
 
 _parser_cache: dict[str, ATSParser] = {}
