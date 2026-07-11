@@ -1,384 +1,242 @@
-# JobZo
+<div align="center">
 
-A personal AI-powered job application assistant for serious job seekers. Collects jobs, scores them against your skills, auto-fills browser application forms, and tracks outcomes — all offline, local-first, and free.
+![JobZo Logo](https://github.com/abhishek-mule/JobZo/raw/main/jobzo_logo.png)
 
-```text
-Collect  →  Filter  →  Score  →  Apply  →  Track
-```
+# 🚀 JobZo - AI Career Accelerator
 
-No subscriptions. No data leaving your machine. No VC-funded recruiter spam.
+*Your Personal AI-Powered Job Search Companion*
 
----
+[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)](https://github.com/abhishek-mule/JobZo)
 
-## How it works
-
-### Pipeline
-
-```text
-RSS Feed (HN) ───────────┐
-Manual URL Import ───────┤
-                          ├──→ Dedup → Keyword Filter → Rule Score → [Optional LLM] → Apply
-Company Career Pages ─────┘
-```
-
-Each step is independent. The system degrades gracefully: if the LLM isn't available, deterministic rule-scoring takes over.
-
-### Rule-based scoring (no AI required)
-
-Every job gets scored on four dimensions:
-
-| Component      | Weight | Description                          |
-|----------------|--------|--------------------------------------|
-| Skill overlap  | 50 pts | Matches between your skills and the JD |
-| Freshness      | 20 pts | How recently the job was posted      |
-| Experience     | 20 pts | How well your experience level fits  |
-| Location       | 10 pts | Remote-friendly or local             |
-
-Each component returns a human-readable reason, so every score is explainable:
-
-```text
-Score: 44
-  Skill match (9/26): react, typescript, postgresql, sql, docker
-  Freshness: 20%
-  your 1yr is below requires 3+ years
-  remote friendly
-```
-
-The LLM is optional — it can refine scores, generate cover letters, and recommend resumes, but the pipeline works without it.
+</div>
 
 ---
 
-## Quick start
+## 📋 Table of Contents
+
+- [About](#about)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## 🎯 About
+
+**JobZo** is an intelligent AI Career Accelerator designed to revolutionize your job search experience. Leveraging cutting-edge artificial intelligence and machine learning, JobZo helps you find the perfect job opportunities, optimize your applications, and accelerate your career growth.
+
+Whether you're a fresh graduate, career changer, or seasoned professional, JobZo is your personal AI-powered companion on your journey to career success! 🌟
+
+---
+
+## ✨ Features
+
+- 🤖 **AI-Powered Job Matching** - Intelligent algorithms match your skills with ideal job opportunities
+- 📊 **Resume Optimization** - Get AI suggestions to improve your resume for better visibility
+- 💼 **Career Analytics** - Analyze job market trends and salary insights
+- 🎓 **Skill Gap Analysis** - Identify missing skills and get learning recommendations
+- 📧 **Application Tracking** - Track and manage all your job applications
+- 🔔 **Smart Job Alerts** - Get personalized job recommendations delivered to you
+- 💡 **Interview Preparation** - AI-powered interview coaching and practice questions
+- 🌐 **Multi-Platform Support** - Access JobZo across different platforms
+
+---
+
+## 🛠️ Installation
 
 ### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
 
-- Python 3.11+
-- [Ollama](https://ollama.ai) (optional, for local LLM scoring)
-- Chrome/Chromium (for browser automation)
+### Steps
 
-### Install
-
+1. **Clone the repository:**
 ```bash
-# Clone
 git clone https://github.com/abhishek-mule/JobZo.git
 cd JobZo
+```
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+2. **Create a virtual environment (recommended):**
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-# Install dependencies
+3. **Install dependencies:**
+```bash
 pip install -r requirements.txt
-
-# Install Playwright browser
-python -m playwright install chromium
 ```
 
-### Configure
-
+4. **Configuration:**
 ```bash
-# Copy browser config (then fill in your name, email, phone)
-cp config/browser.yaml.example config/browser.yaml
-```
-
-Edit `config/browser.yaml`:
-
-```yaml
-profile:
-  name: "Your Name"
-  email: "you@example.com"
-  phone: "+1-555-0123"
-  linkedin: "https://linkedin.com/in/your-profile"
-```
-
-Add your resume metadata JSON files to `resumes/`. Each file lists your skills for scoring:
-
-```json
-{
-  "skills": ["react", "typescript", "postgresql", "docker", "spring boot"]
-}
-```
-
-### Run your first daily workflow
-
-```bash
-jobzo daily
-```
-
-This runs the full pipeline: collect jobs → score them → open the top 5 in your browser for review.
-
----
-
-## CLI reference
-
-| Command | Description |
-|---------|-------------|
-| `collect` | Fetch jobs from all enabled sources |
-| `rank` | Score all unscored job descriptions |
-| `apply` | Open browser, fill form, wait for your confirmation |
-| `import-url` | Import a job URL from any career page |
-| `track` | Dashboard or record an outcome (submitted, interview, rejected, offer) |
-| `task` | View pending tasks (e.g. interview prep) |
-| `export` | Export all applications to CSV |
-| `daily` | Full pipeline: collect → rank → apply top 5 |
-| `skill-gap` | Analyze which skills appear most in collected jobs |
-
-### Examples
-
-```bash
-# Collect jobs
-jobzo collect
-
-# Import a specific job URL
-jobzo import-url "https://boards.greenhouse.io/example/jobs/123"
-
-# Score everything
-jobzo rank
-
-# See your dashboard
-jobzo track
-
-# Record an application outcome
-jobzo track <app-id> --status submitted --note "Applied via Lever"
-
-# Submit an application (opens browser, you review before submission)
-jobzo apply <app-id>
-
-# Export everything for analysis
-jobzo export --out applications.csv
-
-# Check skill demand across collected jobs
-jobzo skill-gap
+# Create a config file (if needed)
+cp config.example.py config.py
+# Edit config.py with your settings
 ```
 
 ---
 
-## Commands in detail
+## 🚀 Usage
 
-### `jobzo collect`
+### Basic Usage
 
-Fetches jobs from enabled providers. Currently supports:
-- **HN RSS** — Hacker News "Who is hiring?" threads
-- **YC company pages** — auto-enriches HN jobs with full descriptions from YC company pages
-- **Manual import** — jobs added via `jobzo import-url`
+```python
+from jobzo import JobZo
 
-Deduplication is by URL + normalized company/title/location hash.
+# Initialize JobZo
+jobzo = JobZo(api_key="your_api_key_here")
 
-### `jobzo rank`
+# Find jobs matching your profile
+jobs = jobzo.find_jobs(
+    skills=["Python", "Machine Learning"],
+    experience_level="mid",
+    location="remote"
+)
 
-For each unscored job, runs:
-1. **Keyword pre-filter** — quick tech-stack match (Spring, React, Docker, etc.)
-2. **Skill overlap** — how many of your skills appear in the description
-3. **Experience match** — seniority level fit
-4. **Location match** — remote/on-site preference
-5. **Freshness** — how recently posted
-6. **LLM (optional)** — if a capable model is available, refines the score
+# Get resume suggestions
+suggestions = jobzo.optimize_resume("path/to/resume.pdf")
 
-Jobs below the keyword threshold (20) are skipped entirely. Rules run first; the LLM is only consulted if it can improve the result.
+# Analyze skill gaps
+gaps = jobzo.analyze_skill_gaps()
+```
 
-### `jobzo apply <id>`
-
-Launches the browser and:
-1. Navigates to the job URL
-2. Detects the application form (checks for known ATS domains)
-3. Fills in your profile (name, email, phone, LinkedIn)
-4. Uploads your resume
-5. Pastes the cover letter
-6. Waits for you to review and click Submit
-
-You always approve before submission.
-
-### `jobzo import-url <url>`
-
-Imports a job from any URL. Uses Playwright to render JavaScript-heavy career pages, then falls back to HTTP + BeautifulSoup, then regex. Extracts company name and job title automatically.
+### Command Line Interface
 
 ```bash
-jobzo import-url "https://careers.example.com/jobs/123"
-```
+# Start JobZo
+python -m jobzo
 
-You can override with flags:
+# Find jobs
+jobzo find-jobs --skills "Python,AI" --location "remote"
 
-```bash
-jobzo import-url <url> --company "Acme" --title "Senior Engineer" --remote
-```
+# Optimize resume
+jobzo optimize-resume --file resume.pdf
 
-### `jobzo track`
-
-Three modes:
-
-```bash
-# Dashboard
-jobzo track
-
-# Detail view
-jobzo track <app-id-prefix>
-
-# Record outcome
-jobzo track <app-id-prefix> --status submitted --note "Applied via Greenhouse"
-```
-
-Valid statuses: `drafted` → `ready` → `submitted` → `interview` → `rejected` → `offer`
-
-Application IDs support prefix matching — `a1b2c3` works for `a1b2c3-...-...`.
-
-### `jobzo export`
-
-Exports all applications to CSV for analysis in Excel, LibreOffice, or Python:
-
-```bash
-jobzo export --out applications.csv
-```
-
-Columns: id, company, title, url, status, score, strategy, resume, applied_at, response_date, interview_date, first_response_at, last_activity_at, source, location, notes.
-
----
-
-## Configuration
-
-All config is in `config/` as YAML files.
-
-### `config/providers.yaml`
-
-Enable/disable job sources:
-
-```yaml
-rss:
-  enabled: true
-  urls:
-    - https://hnrss.org/jobs
-
-company_pages:
-  enabled: false
-  targets: []
-
-manual:
-  enabled: true
-```
-
-### `config/llm.yaml`
-
-LLM provider settings:
-
-```yaml
-provider: ollama
-ollama:
-  model: qwen3:4b
-  base_url: http://localhost:11434/v1
-openai:
-  model: gpt-4o-mini
-  api_key: ${OPENAI_API_KEY}
-```
-
-Set `provider: openai` and `api_key` to use OpenAI. The system detects small models (<2B params) and skips them to avoid unreliable JSON output.
-
-### `config/resume.yaml`
-
-Resume versions for A/B testing:
-
-```yaml
-resumes:
-  backend:
-    file: resumes/backend_v3.pdf
-    metadata: resumes/backend_v3.json
-    active: true
-  fullstack:
-    file: resumes/fullstack_v4.pdf
-    metadata: resumes/fullstack_v4.json
-    active: true
-```
-
-### `config/browser.yaml`
-
-Browser automation settings and your profile:
-
-```yaml
-headless: false
-slow_mo: 500
-executable_path: /usr/bin/google-chrome
-profile:
-  name: ""
-  email: ""
-  phone: ""
-  linkedin: ""
-  github: ""
-```
-
-ATS domain whitelist (greenhouse, lever, ashby, workday, etc.) is built into the browser assistant. Unknown domains prompt for confirmation before autofilling.
-
----
-
-## Project structure
-
-```text
-JobZo/
-├── ai/               # LLM client, scoring, prompts, validators
-│   ├── client.py     # OpenAI / Ollama switch, cache, timeout
-│   ├── scorer.py     # Keyword filter + rule scoring + LLM refinement
-│   ├── llm.py        # Prompt loading and dispatch
-│   └── validator.py  # Pydantic models for LLM output
-├── browser/
-│   └── assistant.py  # Playwright automation, form detection, autofill
-├── cli/
-│   └── main.py       # 9 Typer CLI commands
-├── config/           # YAML configs for providers, LLM, browser, resumes
-├── database/
-│   ├── models.py     # Job, Application, Resume, Task (SQLAlchemy)
-│   └── connection.py # SQLite init
-├── prompts/          # System prompts for each LLM task
-├── providers/
-│   ├── base.py       # RawJob dataclass + JobProvider ABC
-│   ├── rss.py        # HN RSS feed parser
-│   ├── hn_scraper.py # YC company page scraper
-│   ├── manual.py     # JSON queue for imported URLs
-│   └── telegram.py   # Telegram channel listener (disabled)
-├── services/
-│   ├── collector.py  # Pipeline orchestration + dedup
-│   ├── config.py     # YAML config loader
-│   └── freshness.py  # Time-decay freshness score
-├── tests/
-│   ├── golden/       # 3 golden test fixtures (input → expected JSON)
-│   ├── test_filters.py
-│   └── test_golden.py
-├── tracker/
-│   ├── applications.py  # CRUD + status transitions + response timestamps
-│   └── tasks.py         # Pending tasks (follow-ups, interview prep)
-└── resumes/          # JSON skill metadata for each resume version
+# Interview prep
+jobzo prep-interview --role "Data Scientist"
 ```
 
 ---
 
-## Testing
+## 📖 Getting Started
 
-```bash
-pytest tests/ -v
+### Quick Start Guide
+
+1. **Set Up Your Profile:**
+   - Add your skills, experience, and career goals
+   - Upload your resume
+   - Set job preferences
+
+2. **Explore Job Opportunities:**
+   - Browse AI-matched job recommendations
+   - Filter by location, salary, and experience level
+   - Save favorite opportunities
+
+3. **Optimize Your Application:**
+   - Get AI-powered resume feedback
+   - Tailor cover letters for specific positions
+   - Track your application status
+
+4. **Prepare for Interviews:**
+   - Practice with AI-generated interview questions
+   - Get coaching on common interview scenarios
+   - Review company insights and interview tips
+
+### Example Workflow
+
+```python
+# Complete workflow example
+from jobzo import JobZo, ResumeAnalyzer, InterviewCoach
+
+jobzo = JobZo()
+
+# Step 1: Analyze your current resume
+analyzer = ResumeAnalyzer()
+feedback = analyzer.analyze("my_resume.pdf")
+print(feedback)
+
+# Step 2: Find matching jobs
+jobs = jobzo.find_jobs(
+    skills=["Python", "Django"],
+    min_salary=50000,
+    location="San Francisco"
+)
+
+# Step 3: Prepare for interviews
+coach = InterviewCoach()
+interview_tips = coach.get_tips("Software Engineer")
 ```
 
-6 tests covering keyword scoring, skill overlap, experience matching, freshness decay, dedup keys, and golden regression tests.
+---
+
+## 🤝 Contributing
+
+We'd love your contributions! Please follow these steps:
+
+1. **Fork the repository**
+2. **Create a feature branch:**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Make your changes and commit:**
+   ```bash
+   git commit -m "Add some amazing feature"
+   ```
+4. **Push to the branch:**
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open a Pull Request**
+
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Format code
+black .
+
+# Lint code
+flake8 .
+```
 
 ---
 
-## Design principles
+## 📝 License
 
-- **Rules before AI** — deterministic scoring runs first. LLM is an optional refinement, not a dependency.
-- **Human in the loop** — browser automation never submits without your review.
-- **Explainable scores** — every score includes human-readable reasons for each component.
-- **Graceful degradation** — everything works without internet, without an LLM, without any single component.
-- **Local-first** — SQLite, offline scoring, no data leaves your machine.
-- **Resource efficient** — designed for 8 GB RAM, dual-core, ₹0 budget.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## Roadmap
+## 📞 Support & Contact
 
-**v1.0** — Daily driver (current)
+- 📧 **Email:** [Open an issue on GitHub](https://github.com/abhishek-mule/JobZo/issues)
+- 🐛 **Bug Reports:** [Create an issue](https://github.com/abhishek-mule/JobZo/issues/new)
+- 💬 **Discussions:** [Join our discussions](https://github.com/abhishek-mule/JobZo/discussions)
 
-**After 100 applications** (data-driven):
-- Company career-page crawling
-- Resume A/B testing analytics
-- `jobzo review` command with stats
-- Learning scoring weights from interview outcomes
+---
 
-**Future** (only if needed):
-- Cloud LLM routing
-- Automatic recruiter email classification
-- Recruiter CRM
+## 🙏 Acknowledgments
+
+- Thanks to all contributors who have helped with code, documentation, and feedback
+- Inspired by the need to revolutionize career development
+- Built with ❤️ for job seekers everywhere
+
+---
+
+<div align="center">
+
+### ⭐ If you find JobZo helpful, please consider giving it a star!
+
+**Happy Job Hunting! 🚀**
+
+</div>
