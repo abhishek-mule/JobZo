@@ -1,7 +1,7 @@
 <div align="center">
 
-![Uploading Gemini_Generated_Image_brclqgbrclqgbrcl.png…]()
 
+<img width="1407" height="768" alt="Gemini_Generated_Image_brclqgbrclqgbrcl" src="https://github.com/user-attachments/assets/612db4f7-8c33-4046-93f5-68f082f32f5f" />
 
 
 # 🚀 JobZo - AI Career Accelerator
