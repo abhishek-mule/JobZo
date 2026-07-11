@@ -526,6 +526,7 @@ def apply(
         else:
             apps = session.query(Application).filter(
                 Application.status.in_(["drafted", "ready"]),
+                Application.strategy != "skip",
             ).order_by(Application.score.desc()).limit(10).all()
 
             if not apps:
@@ -1154,6 +1155,105 @@ def _show_top_applications():
         console.print("Run [bold]jobzo apply <id>[/bold] to submit an application")
     finally:
         session.close()
+
+
+@app.command()
+def stats():
+    """Show application statistics."""
+    import json
+    from pathlib import Path
+
+    log_file = Path(__file__).parent.parent / "logs" / "applications.jsonl"
+    if not log_file.exists():
+        console.print("[yellow]No application data yet[/yellow]")
+        return
+
+    entries = []
+    with open(log_file) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+
+    if not entries:
+        console.print("[yellow]No application data yet[/yellow]")
+        return
+
+    unique = {}
+    for e in entries:
+        key = (e.get("company", ""), e.get("title", "")[:40])
+        unique[key] = e
+
+    apps = list(unique.values())
+    total = len(apps)
+    submitted = sum(1 for a in apps if a.get("submitted"))
+
+    if total == 0:
+        console.print("[yellow]No application data yet[/yellow]")
+        return
+
+    times = [a.get("time_seconds", 0) for a in apps if a.get("time_seconds", 0) > 0]
+    avg_time = sum(times) / len(times) if times else 0
+
+    filled_list = [a.get("fields_filled", 0) for a in apps]
+    total_list = [a.get("fields_filled", 0) + a.get("fields_manual", 0) for a in apps]
+    avg_filled = sum(filled_list) / len(filled_list) if filled_list else 0
+    avg_total = sum(total_list) / len(total_list) if total_list else 0
+    avg_pct = (avg_filled / avg_total * 100) if avg_total > 0 else 0
+
+    ats_counts = {}
+    resume_counts = {}
+    source_counts = {}
+    manual_fields_list = []
+
+    for a in apps:
+        ats = a.get("ats", "Unknown")
+        ats_counts[ats] = ats_counts.get(ats, 0) + 1
+
+        resume = a.get("resume", "")
+        if resume:
+            resume_counts[resume] = resume_counts.get(resume, 0) + 1
+
+        title = a.get("title", "")
+        source = "Company Pages" if a.get("company") in ("Postman", "Stripe", "CloudSEK", "Glean", "Instead") else "RSS" if "rss" in a.get("source", "").lower() else "Manual"
+        source_counts[source] = source_counts.get(source, 0) + 1
+
+        manual = a.get("fields_manual", 0)
+        if manual > 0:
+            manual_fields_list.append(manual)
+
+    best_ats = max(ats_counts, key=ats_counts.get) if ats_counts else "—"
+    best_resume = max(resume_counts, key=resume_counts.get) if resume_counts else "—"
+    avg_manual = sum(manual_fields_list) / len(manual_fields_list) if manual_fields_list else 0
+    time_saved_min = int(avg_time * total / 60) if avg_time else 0
+
+    interviews = 0
+
+    panel = Panel.fit(
+        "\n".join([
+            "",
+            f"  [bold]Applications[/bold]        {total}",
+            f"  [bold]Submitted[/bold]            {submitted}",
+            f"  [bold]Interviews[/bold]           {interviews}",
+            f"  [bold]Interview Rate[/bold]       [yellow]—[/yellow] (no responses yet)",
+            "",
+            f"  [bold]Average Time[/bold]         {avg_time:.0f}s ({avg_time/60:.1f} min)",
+            f"  [bold]Average Autofill[/bold]     {avg_filled:.0f}/{avg_total:.0f} fields ({avg_pct:.0f}%)",
+            f"  [bold]Manual Fields (avg)[/bold]  {avg_manual:.1f}",
+            f"  [bold]Time Saved[/bold]           ~{time_saved_min} min",
+            "",
+            f"  [bold]Best ATS[/bold]             {best_ats}",
+            f"  [bold]Best Resume[/bold]          {best_resume}",
+            f"  [bold]Best Source[/bold]          {max(source_counts, key=source_counts.get) if source_counts else '—'}",
+            "",
+        ]),
+        title="[bold cyan]JobZo Statistics[/bold cyan]",
+        border_style="cyan",
+    )
+    console.print(panel)
 
 
 if __name__ == "__main__":

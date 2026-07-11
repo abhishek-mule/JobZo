@@ -78,6 +78,43 @@ def _location_match(job: Job, preferred: str = "remote") -> tuple[float, str]:
     return 0.5, "location unknown"
 
 
+SENIOR_TITLES = [
+    "senior", "sr ", "sr.", "staff", "principal", "lead", "architect",
+    "manager", "director", "head of", "vp ", "vice president",
+]
+
+JUNIOR_TITLES = [
+    "intern", "graduate", "new grad", "entry level", "junior", "fresher",
+    "campus", "university", "early career", "sde i", "sde 1",
+    "software engineer i", "software engineer 1",
+    "backend engineer i", "backend engineer 1",
+]
+
+
+def _seniority_gate(title: str, user_experience_years: int = 1) -> tuple[float, str]:
+    """Hard seniority gate. Returns multiplier and reason."""
+    t = title.lower()
+
+    # Junior/entry-level titles are ideal
+    for kw in JUNIOR_TITLES:
+        if kw in t:
+            return 1.0, f"entry-level role ({kw})"
+
+    # Senior titles are a hard penalty for <3yr experience
+    for kw in SENIOR_TITLES:
+        if kw in t:
+            if user_experience_years < 2:
+                return 0.0, f"requires seniority ({kw}) — not competitive with {user_experience_years}yr"
+            elif user_experience_years < 4:
+                return 0.3, f"stretch: {kw} role with {user_experience_years}yr"
+
+    # Mid-level roles (SDE II, Software Engineer II, etc.)
+    if re.search(r"\b(ii|2|two)\b", t) and user_experience_years < 2:
+        return 0.5, "mid-level role may be a stretch"
+
+    return 1.0, "level appropriate"
+
+
 def _keyword_pre_score(job: Job) -> int:
     score = 0
     text = (job.title + " " + job.description).lower()
@@ -216,6 +253,7 @@ async def score_pending_jobs(
         top_jobs = scored_jobs[:max_llm]
 
         for job, kw_score, overlap, matched, exp_match, exp_reason, loc_match, loc_reason in top_jobs:
+            seniority_mult, seniority_reason = _seniority_gate(job.title, user_experience_years)
             llm_result = _llm_score(job)
             freshness = freshness_score(job.posted_at)
 
@@ -234,32 +272,46 @@ async def score_pending_jobs(
                     weights.get("priority_weight", 0.15) * llm_score_val
                 )
 
+                if seniority_mult == 0.0:
+                    strategy = "skip"
+                    final_score = min(final_score, 20)
+                else:
+                    final_score = int(final_score * seniority_mult)
+
                 app = Application(
                     job_id=job.id,
                     status="drafted",
                     score=final_score,
                     strategy=strategy,
                     resume_used=resume_name,
-                    notes=reasoning,
+                    notes=f"{seniority_reason} | {reasoning}" if reasoning else seniority_reason,
                 )
                 session.add(app)
                 scored += 1
                 logger.info(
-                    "Scored %s - %s: %d/%d (%s)",
-                    job.company, job.title, final_score, 100, strategy,
+                    "Scored %s - %s: %d/%d (%s) [seniority: %s]",
+                    job.company, job.title, final_score, 100, strategy, seniority_reason,
                 )
             else:
                 skill_pts = int(overlap * 50)
                 fresh_pts = int(freshness * 20)
                 exp_pts = int(exp_match * 20)
                 loc_pts = int(loc_match * 10)
-                final_score = skill_pts + fresh_pts + exp_pts + loc_pts
+                raw_score = skill_pts + fresh_pts + exp_pts + loc_pts
+
+                if seniority_mult == 0.0:
+                    final_score = min(raw_score, 20)
+                    strategy = "skip"
+                else:
+                    final_score = int(raw_score * seniority_mult)
+                    strategy = "skip" if final_score < 50 else "watch"
 
                 reasons = [
                     f"Skill match ({len(matched)}/{len(user_skills)}): {', '.join(matched[:5])}" if matched else "No skill matches",
                     f"Freshness: {freshness:.0%}",
                     exp_reason,
                     loc_reason,
+                    seniority_reason,
                 ]
                 notes = " | ".join(reasons)
 
@@ -267,7 +319,7 @@ async def score_pending_jobs(
                     job_id=job.id,
                     status="drafted",
                     score=final_score,
-                    strategy="skip" if final_score < 50 else "watch",
+                    strategy=strategy,
                     notes=notes,
                 )
                 session.add(app)
