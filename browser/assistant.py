@@ -74,11 +74,17 @@ FIELD_MAP = {
         "name": ["github", "github-url", "github_profile", "githuburl"],
         "placeholder": ["GitHub", "GitHub URL", "GitHub profile"],
     },
+    "current_company": {
+        "label": "Current company",
+        "aria": ["current-company", "current-company-name", "employer"],
+        "name": ["current-company", "company", "employer", "current-company-name"],
+        "placeholder": ["Current company", "Company", "Employer", "Current employer"],
+    },
     "current_role": {
         "label": "Current role",
-        "aria": ["current-role", "job-title", "current-title", "current-company"],
+        "aria": ["current-role", "job-title", "current-title"],
         "name": ["current-role", "title", "job-title", "current-title", "position", "org"],
-        "placeholder": ["Current role", "Job title", "Title", "Position", "Current company"],
+        "placeholder": ["Current role", "Job title", "Title", "Position"],
     },
     "years_experience": {
         "label": "Years of experience",
@@ -103,6 +109,24 @@ FIELD_MAP = {
         "autocomplete": ["graduation-year", "grad-year"],
         "name": ["graduation-year", "grad-year", "graduation_year", "graduation_date"],
         "placeholder": ["Graduation year", "Grad year", "Year of graduation"],
+    },
+    "current_ctc": {
+        "label": "Current CTC",
+        "aria": ["current-ctc", "current-cost-to-company", "present-ctc", "current-salary"],
+        "name": ["current-ctc", "current_cost_to_company", "present-ctc", "current_ctc", "current-annual-salary"],
+        "placeholder": ["Current CTC", "Current Cost to Company", "Current salary", "Present CTC"],
+    },
+    "expected_ctc": {
+        "label": "Expected CTC",
+        "aria": ["expected-ctc", "expected-cost-to-company", "expected-salary", "desired-ctc"],
+        "name": ["expected-ctc", "expected_cost_to_company", "expected_ctc", "desired-ctc", "expected-salary", "desired-salary"],
+        "placeholder": ["Expected CTC", "Expected Cost to Company", "Expected salary", "Desired CTC"],
+    },
+    "notice_period": {
+        "label": "Notice period",
+        "aria": ["notice-period", "notice", "notice-period-duration"],
+        "name": ["notice-period", "notice_period", "notice", "notice-period-duration"],
+        "placeholder": ["Notice period", "Notice"],
     },
     "cover": {
         "label": "Cover letter",
@@ -354,11 +378,15 @@ class BrowserAssistant:
             ("location", profile.get("location", "")),
             ("linkedin", profile.get("linkedin", "")),
             ("github", profile.get("github", "")),
+            ("current_company", profile.get("current_company", "")),
             ("current_role", profile.get("current_role", "")),
             ("years_experience", str(profile.get("years_experience", ""))),
             ("degree", profile.get("degree", "")),
             ("college", profile.get("college", "")),
             ("graduation_year", profile.get("graduation_year", "")),
+            ("current_ctc", str(profile.get("current_ctc", ""))),
+            ("expected_ctc", str(profile.get("expected_ctc", ""))),
+            ("notice_period", profile.get("notice_period", "")),
         ]
 
         for field_type, value in FIELDS:
