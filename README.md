@@ -1,6 +1,8 @@
 <div align="center">
 
-![JobZo Logo](https://github.com/abhishek-mule/JobZo/raw/main/jobzo_logo.png)
+![Uploading Gemini_Generated_Image_brclqgbrclqgbrcl.png…]()
+
+
 
 # 🚀 JobZo - AI Career Accelerator
 
