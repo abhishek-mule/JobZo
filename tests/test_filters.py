@@ -5,8 +5,53 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-def test_keyword_scorer():
-    from ai.scorer import _keyword_pre_score
+def test_retriever_skill_matching():
+    """Test that the retriever matches skills from job descriptions."""
+    from ai.retriever import retrieve, _match_skills
+
+    user_skills = ["spring boot", "postgresql", "docker", "react"]
+    job_skills = ["spring boot", "postgresql", "docker"]
+
+    expanded_resume = {"spring boot": 1.0, "postgresql": 1.0, "docker": 1.0, "react": 1.0}
+    expanded_job = {"spring boot": 1.0, "postgresql": 1.0, "docker": 1.0}
+
+    matched = _match_skills(user_skills, job_skills, expanded_resume, expanded_job)
+    assert matched["overlap"] > 0.5, f"Expected > 0.5 overlap, got {matched['overlap']}"
+    assert "spring boot" in matched["matched"]
+    print(f"Skill matching: overlap={matched['overlap']}, matched={matched['matched']}")
+
+
+def test_retriever_experience_fit():
+    """Test experience fit scoring in the retriever."""
+    from ai.retriever import _experience_match
+
+    match, reason = _experience_match("0-2 years experience required", "0-2 years", 1)
+    assert match > 0.5, f"Expected > 0.5 for 1yr vs 0-2yr, got {match}"
+    assert "your 1yr matches" in reason, f"Expected match in reason, got: {reason}"
+    print(f"Experience: match={match}, reason={reason}")
+
+    # Overqualified
+    over, over_reason = _experience_match("0-2 years experience", "0-2 years", 5)
+    assert over < 1.0, f"Expected < 1.0 for overqualified, got {over}"
+    print(f"Overqualified: match={over}, reason={over_reason}")
+
+
+def test_retriever_location_fit():
+    """Test location fit scoring in the retriever."""
+    from ai.retriever import _location_match
+
+    remote_match, reason = _location_match("Remote", True)
+    assert remote_match == 1.0, f"Expected 1.0 for remote, got {remote_match}"
+    print(f"Remote: match={remote_match}, reason={reason}")
+
+    onsite_match, reason = _location_match("Mumbai, India", False)
+    assert onsite_match == 0.5, f"Expected 0.5 for on-site, got {onsite_match}"
+    print(f"On-site: match={onsite_match}, reason={reason}")
+
+
+def test_retriever_full_pipeline():
+    """Test the full retrieval pipeline returns RankedOpportunity."""
+    from ai.retriever import retrieve
     from database.models import Job
 
     job = Job(
@@ -14,45 +59,17 @@ def test_keyword_scorer():
         title="Backend Engineer (Spring Boot)",
         description="Looking for a Spring Boot developer with React experience. Backend role with microservices.",
         skills=["Spring Boot", "Java"],
-    )
-
-    score = _keyword_pre_score(job)
-    assert score >= 30, f"Expected >= 30, got {score}"
-    print(f"Keyword score: {score}")
-
-
-def test_skill_overlap():
-    from ai.scorer import _skill_overlap
-    from database.models import Job
-
-    job = Job(
-        company="TestCo",
-        title="Backend Engineer",
-        description="Spring Boot, PostgreSQL, Docker",
-        skills=["Spring Boot", "PostgreSQL"],
-    )
-
-    overlap, matched = _skill_overlap(job, ["spring boot", "postgresql", "docker", "react"])
-    assert overlap > 0.5, f"Expected > 0.5, got {overlap}"
-    assert len(matched) >= 2, f"Expected >= 2 matched skills, got {matched}"
-    print(f"Skill overlap: {overlap}, matched: {matched}")
-
-
-def test_experience_match():
-    from ai.scorer import _experience_match
-    from database.models import Job
-
-    job = Job(
-        company="TestCo",
-        title="Junior Developer",
-        description="0-2 years experience required",
         experience_required="0-2 years",
+        location="Remote",
+        remote=True,
     )
 
-    match, reason = _experience_match(job, user_experience_years=1)
-    assert match > 0.5, f"Expected > 0.5, got {match}"
-    assert "0-2" in reason, f"Expected reason to mention 0-2, got: {reason}"
-    print(f"Experience match: {match}, reason: {reason}")
+    opp = retrieve(job, ["spring boot", "postgresql", "docker", "react"], 1)
+    assert opp is not None, "Pipeline should retrieve matching job"
+    assert opp.composite_score() > 0, f"Expected positive score, got {opp.composite_score()}"
+    assert opp.tier() != "ignore", f"Expected non-ignore tier, got {opp.tier()}"
+    assert "spring boot" in opp.matched_skills or "Spring Boot" in opp.matched_skills
+    print(f"Pipeline: {opp.company} - {opp.title}: score={opp.composite_score()}, tier={opp.tier()}")
 
 
 def test_freshness():
@@ -83,9 +100,10 @@ def test_dedup_key():
 
 
 if __name__ == "__main__":
-    test_keyword_scorer()
-    test_skill_overlap()
-    test_experience_match()
+    test_retriever_skill_matching()
+    test_retriever_experience_fit()
+    test_retriever_location_fit()
+    test_retriever_full_pipeline()
     test_freshness()
     test_dedup_key()
     print("\nAll filter tests passed!")
