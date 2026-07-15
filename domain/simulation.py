@@ -2,6 +2,7 @@
 
 Simulates N days of random interview/offer/reject outcomes to measure
 expected interviews, offers, and salary before shipping planner changes.
+Supports scenario comparison: "Should I learn Redis, apply, or network?"
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from typing import Any
 
 from domain.models import TaskNode, MissionContext
 from domain.planner import GreedyPlanner
+from domain.capital import CapitalProfile, KIND_CONTRIBUTIONS, capital_value
 
 
 @dataclass
@@ -209,3 +211,199 @@ def simulate(
 
     result.budget_utilization = total_budget_used / max(total_budget_available, 1)
     return result
+
+
+# ── Scenario comparison ──────────────────────────────────────────────────
+
+@dataclass
+class Scenario:
+    """A career strategy to simulate and compare."""
+    name: str
+    description: str
+    task_mix: dict[str, float]  # kind -> proportion (e.g. {"apply": 0.7, "outreach": 0.3})
+
+
+@dataclass
+class ScenarioResult:
+    """Outcome of a single scenario simulation."""
+    scenario: Scenario
+    runs: list[SimulationResult] = field(default_factory=list)
+    capital_profile: CapitalProfile | None = None
+
+    @property
+    def average(self) -> dict[str, Any]:
+        if not self.runs:
+            return {}
+        avg: dict[str, float] = {}
+        keys = ["total_applications", "total_interviews", "total_offers", "total_salary_lpa"]
+        for k in keys:
+            avg[k] = sum(getattr(r, k, 0) for r in self.runs) / len(self.runs)
+        # Capital score
+        if self.capital_profile:
+            capital_scores = []
+            for r in self.runs:
+                apply_count = sum(1 for log in r.daily_logs for _ in range(log.get("applied", 0)))
+                score = 0.0
+                for kind, weight in self.scenario.task_mix.items():
+                    contrib = KIND_CONTRIBUTIONS.get(kind)
+                    if contrib:
+                        score += contrib.dot(self.capital_profile.weights) * apply_count * weight
+                capital_scores.append(score)
+            avg["capital_score"] = round(sum(capital_scores) / len(capital_scores), 1)
+        else:
+            avg["capital_score"] = 0.0
+        avg["placement_probability"] = round(
+            avg["total_offers"] / max(avg["total_applications"], 1) * 100, 1
+        )
+        return avg
+
+    def compare_to(self, other: ScenarioResult) -> dict[str, Any]:
+        a = self.average
+        b = other.average
+        if not a or not b:
+            return {}
+        deltas = {}
+        for k in a:
+            if k in b:
+                deltas[k] = round(a[k] - b[k], 1)
+        return deltas
+
+
+def simulate_scenario(
+    scenario: Scenario,
+    total_hours: float = 8.0,
+    days: int = 30,
+    runs: int = 10,
+    seed: int = 42,
+    capital_profile: CapitalProfile | None = None,
+) -> ScenarioResult:
+    """Simulate a single career scenario over multiple runs.
+
+    Args:
+        scenario: Which task mix to simulate.
+        total_hours: Total time budget for the simulation period.
+        days: Number of days to simulate.
+        runs: Number of Monte Carlo runs.
+        seed: Random seed.
+        capital_profile: Optional capital weights for scoring.
+
+    Returns:
+        ScenarioResult with aggregated statistics.
+    """
+    cfg = SimulationConfig(
+        days=days,
+        daily_budget=int(total_hours * 60 / days),
+        seed=seed,
+    )
+    planner = GreedyPlanner()
+    scenario_runs: list[SimulationResult] = []
+
+    for run in range(runs):
+        cfg.seed = seed + run
+        pool = _scenario_task_pool(scenario, cfg)
+        result = simulate(planner, cfg, pool)
+        scenario_runs.append(result)
+
+    return ScenarioResult(
+        scenario=scenario,
+        runs=scenario_runs,
+        capital_profile=capital_profile,
+    )
+
+
+def _scenario_task_pool(
+    scenario: Scenario,
+    config: SimulationConfig,
+) -> list[TaskTemplate]:
+    """Generate a task pool matching a scenario's task mix."""
+    rng = random.Random(config.seed + 999)
+    companies = [
+        "Stripe", "BrowserStack", "Postman", "Nubank", "Razorpay",
+        "Groww", "Zerodha", "Freshworks", "Chargebee", "Hasura",
+    ]
+    pool: list[TaskTemplate] = []
+    total = 50
+    for kind, proportion in scenario.task_mix.items():
+        count = int(total * proportion)
+        for i in range(count):
+            company = rng.choice(companies)
+            prob = rng.uniform(*config.interview_probability_range)
+            mins = _kind_time(kind)
+            pool.append(TaskTemplate(
+                id=f"{kind}-{i}",
+                kind=kind,
+                title=_kind_title(kind, company),
+                estimated_minutes=mins,
+                expected_value=round(prob * 100, 1),
+            ))
+    rng.shuffle(pool)
+    return pool
+
+
+def _kind_time(kind: str) -> int:
+    return {"apply": 15, "outreach": 6, "learning": 30, "followup": 5}.get(kind, 15)
+
+
+def _kind_title(kind: str, company: str) -> str:
+    titles = {
+        "apply": f"Apply to {company}",
+        "outreach": f"Contact recruiter at {company}",
+        "learning": "Learn Redis + Kafka",
+        "followup": f"Follow up on {company} application",
+    }
+    return titles.get(kind, f"Task at {company}")
+
+
+def compare_scenarios(
+    scenarios: list[Scenario],
+    total_hours: float = 8.0,
+    days: int = 30,
+    runs: int = 10,
+    capital_profile: CapitalProfile | None = None,
+) -> dict[str, Any]:
+    """Compare multiple career scenarios side by side.
+
+    Args:
+        scenarios: List of scenarios to compare.
+        total_hours: Time budget to split across scenarios.
+        days: Simulation horizon.
+        runs: Monte Carlo runs per scenario.
+
+    Returns:
+        Comparison dict with averages, deltas, and recommendation.
+    """
+    results: list[ScenarioResult] = []
+    for sc in scenarios:
+        result = simulate_scenario(sc, total_hours, days, runs, capital_profile=capital_profile)
+        results.append(result)
+
+    comparison = {
+        "total_hours": total_hours,
+        "days": days,
+        "scenarios": [],
+    }
+
+    best_result = max(results, key=lambda r: r.average.get("capital_score", 0))
+    for r in results:
+        avg = r.average
+        entry = {
+            "name": r.scenario.name,
+            "description": r.scenario.description,
+            "task_mix": r.scenario.task_mix,
+            **avg,
+        }
+        if r is not best_result:
+            delta = best_result.average.get("capital_score", 0) - avg.get("capital_score", 0)
+            entry["vs_best"] = round(delta, 1)
+        else:
+            entry["vs_best"] = 0.0
+            entry["recommended"] = True
+        comparison["scenarios"].append(entry)
+
+    comparison["recommendation"] = best_result.scenario.name
+    comparison["recommendation_reason"] = (
+        f"Scenario '{best_result.scenario.name}' maximizes capital accumulation "
+        f"with {best_result.average.get('capital_score', 0)} capital score, "
+        f"{best_result.average.get('total_offers', 0):.1f} expected offers."
+    )
+    return comparison
