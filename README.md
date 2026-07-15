@@ -1,3 +1,5 @@
+<img width="1407" height="768" alt="Gemini_Generated_Image_brclqgbrclqgbrcl" src="https://github.com/user-attachments/assets/3600c1e9-c997-45a8-8682-57c16f6cf0ab" />
+
 # JobZo — Career Optimization Engine
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)]()
