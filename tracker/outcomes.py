@@ -53,9 +53,25 @@ def update_outcome(application_id: str, **kwargs: Any) -> dict[str, Any]:
         if not outcome:
             raise ValueError(f"No outcome record for {application_id}")
 
+        from domain.observation import ObservationService, ObservationType
+
         for key, value in kwargs.items():
-            if hasattr(outcome, key):
+            old = getattr(outcome, key, None) if hasattr(outcome, key) else None
+            if hasattr(outcome, key) and value is not None:
                 setattr(outcome, key, value)
+                if key == "viewed_at" and old is None:
+                    ObservationService.record(application_id, ObservationType.APPLICATION_VIEWED, session=session)
+                elif key == "oa_at" and old is None:
+                    ObservationService.record(application_id, ObservationType.OA_RECEIVED, session=session)
+                elif key == "oa_completed_at" and old is None:
+                    ObservationService.record(application_id, ObservationType.OA_COMPLETED, session=session)
+                elif key == "interview_rounds" and value and value > (old or 0):
+                    ObservationService.record(
+                        application_id,
+                        ObservationType.INTERVIEW_PASSED,
+                        metadata={"rounds": value},
+                        session=session,
+                    )
 
         session.commit()
         return {"status": "updated", "application_id": application_id}

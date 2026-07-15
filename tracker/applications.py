@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from database.models import Application, Job, Task
 from database.connection import get_session
-from tracker.events import record_event, APPLICATION_CREATED, STATUS_CHANGED, APPLICATION_SKIPPED
 
 logger = logging.getLogger("jobzo.tracker")
 
@@ -87,23 +86,30 @@ def transition_status(app_id: str, new_status: str) -> bool:
             if not app.first_response_at:
                 app.first_response_at = now
 
-        session.commit()
+        from domain.observation import ObservationService, ObservationType
+        OBS_MAP = {
+            "submitted": ObservationType.APPLICATION_SUBMITTED,
+            "interview": ObservationType.INTERVIEW_SCHEDULED,
+            "offer": ObservationType.OFFER_RECEIVED,
+            "rejected": ObservationType.REJECTED,
+            "skipped": ObservationType.APPLICATION_SKIPPED,
+        }
+        obs_type = OBS_MAP.get(new_status)
 
-        from tracker.events import record_event, STATUS_CHANGED, APPLICATION_SUBMITTED, OFFER_RECEIVED, REJECTED, INTERVIEW_SCHEDULED
-        ev_type = STATUS_CHANGED
-        if new_status == "submitted":
-            ev_type = APPLICATION_SUBMITTED
-        elif new_status == "interview":
-            ev_type = INTERVIEW_SCHEDULED
-        elif new_status == "offer":
-            ev_type = OFFER_RECEIVED
-        elif new_status == "rejected":
-            ev_type = REJECTED
-        record_event(ev_type, "application", app.id, actor="user", metadata={
+        metadata = {
             "from_status": getattr(app, '_prev_status', None),
             "to_status": new_status,
             "company": app.job.company if app.job else "",
-        })
+        }
+        if obs_type:
+            ObservationService.record(
+                application_id=app.id,
+                obs_type=obs_type,
+                metadata=metadata,
+                session=session,
+            )
+
+        session.commit()
 
         from tracker.outcomes import auto_record_from_status
         auto_record_from_status(app.id)
