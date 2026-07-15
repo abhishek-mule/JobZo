@@ -73,7 +73,10 @@ def is_fresh(url: str, ttl_hours: int = 6) -> bool:
     if not entry:
         return False
     age = (datetime.utcnow() - entry.fetched_at).total_seconds()
-    return age < ttl_hours * 3600
+    ttl = ttl_hours * 3600
+    if entry.jobs_found == 0:
+        ttl = min(ttl, 3600)
+    return age < ttl
 
 
 def html_unchanged(url: str, html: str) -> bool:

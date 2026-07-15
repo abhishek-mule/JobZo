@@ -51,7 +51,7 @@ async def collect_all(keywords: list[str] | None = None) -> int:
         from providers.hn_scraper import enrich_yc_jobs
         raw_jobs = await enrich_yc_jobs(raw_jobs)
 
-        saved = _store_jobs(raw_jobs, provider)
+        saved = _store_jobs(raw_jobs, provider, keywords)
         total += saved
         logger.info("%s: %d new jobs", name, saved)
 
@@ -59,7 +59,7 @@ async def collect_all(keywords: list[str] | None = None) -> int:
     return total
 
 
-def _store_jobs(raw_jobs: list[RawJob], provider) -> int:
+def _store_jobs(raw_jobs: list[RawJob], provider, keywords: list[str] | None = None) -> int:
     session: Session = get_session()
     saved = 0
 
@@ -103,6 +103,11 @@ def _store_jobs(raw_jobs: list[RawJob], provider) -> int:
             saved += 1
 
         session.commit()
+        from tracker.events import record_event, SYNC_RUN
+        record_event(SYNC_RUN, "system", "collector", actor="system", metadata={
+            "jobs_saved": saved,
+            "keywords": keywords,
+        })
     except Exception as e:
         session.rollback()
         logger.error("Error storing jobs: %s", e)
