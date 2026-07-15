@@ -4,16 +4,19 @@ from domain.models import (
     TaskNode,
     Mission,
     MissionContext,
-    OpportunityView,
+    OpportunitySnapshot,
+    ProviderResult,
 )
 from domain.providers import TaskProvider, ApplyTaskProvider
+from domain.registry import TaskProviderRegistry
 from domain.planner import GreedyPlanner
 from domain.execution import MissionExecution
 
 __all__ = [
     "DependencyKind", "Dependency", "TaskNode",
-    "Mission", "MissionContext", "OpportunityView",
+    "Mission", "MissionContext", "OpportunitySnapshot", "ProviderResult",
     "TaskProvider", "ApplyTaskProvider",
+    "TaskProviderRegistry",
     "GreedyPlanner",
     "MissionExecution",
 ]

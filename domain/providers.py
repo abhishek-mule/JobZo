@@ -1,24 +1,45 @@
 """Task Providers — generate TaskNode objects from DecisionSnapshots.
 
 Every provider is a pure function:
-  (context, opportunities) → TaskNode[]
+  (context, opportunities) → ProviderResult
 
 No SQL. No filesystem. No network.
 """
 
 from __future__ import annotations
 from typing import Protocol
-from domain.models import TaskNode, MissionContext, OpportunityView
+
+from domain.models import TaskNode, MissionContext, OpportunitySnapshot, ProviderResult
 
 
 class TaskProvider(Protocol):
-    """Interface every task provider must satisfy."""
+    """Interface every task provider must satisfy.
+
+    Providers declare capabilities via priority() and supports()
+    so the registry can filter them without calling build().
+    """
 
     def kind(self) -> str:
         """Unique kind string, e.g. 'apply', 'followup', 'interview'."""
         ...
 
-    def build(self, context: MissionContext, opportunities: list[OpportunityView]) -> list[TaskNode]:
+    def version(self) -> str:
+        """Provider version for provenance tracking."""
+        ...
+
+    def priority(self) -> int:
+        """Lower = runs earlier. Controls dependency ordering between providers."""
+        ...
+
+    def supports(self, context: MissionContext) -> bool:
+        """True if this provider can generate tasks for the given context.
+
+        A networking provider might return False for an "ASAP" goal.
+        A learning provider might return False if no skill gaps exist.
+        """
+        return True
+
+    def build(self, context: MissionContext, opportunities: list[OpportunitySnapshot]) -> ProviderResult:
         """Generate tasks from the given opportunities.
 
         Pure function — no side effects, no I/O.
@@ -32,22 +53,37 @@ class ApplyTaskProvider:
     def kind(self) -> str:
         return "apply"
 
-    def build(self, context: MissionContext, opportunities: list[OpportunityView]) -> list[TaskNode]:
-        tasks: list[TaskNode] = []
+    def version(self) -> str:
+        return "1"
+
+    def priority(self) -> int:
+        return 10
+
+    def supports(self, context: MissionContext) -> bool:
+        return True
+
+    def build(self, context: MissionContext, opportunities: list[OpportunitySnapshot]) -> ProviderResult:
+        result = ProviderResult(
+            provider=self.kind(),
+            provider_version=self.version(),
+        )
         for opp in opportunities:
             task = self._build_task(opp, context)
             if task:
-                tasks.append(task)
-        return tasks
+                result.tasks.append(task)
+        result.statistics = {
+            "opportunities_scanned": len(opportunities),
+            "tasks_created": len(result.tasks),
+            "total_value": round(result.total_estimated_value, 1),
+        }
+        return result
 
-    def _build_task(self, opp: OpportunityView, context: MissionContext) -> TaskNode | None:
+    def _build_task(self, opp: OpportunitySnapshot, context: MissionContext) -> TaskNode | None:
         from domain.models import Dependency, DependencyKind
 
         min_score = context.preferences.get("apply_min_score", 60)
         if opp.score < min_score:
             return None
-
-        now = context.today
 
         task = TaskNode(
             id=f"apply-{opp.snapshot_id}",
@@ -78,8 +114,6 @@ class ApplyTaskProvider:
         task.add_why(f"Interview probability: {opp.interview_probability}%")
         if opp.matched_skills:
             task.add_why(f"Skills matched: {len(opp.matched_skills)}")
-        if opp.missing_skills:
-            task.add_why(f"Skills to learn: {', '.join(opp.missing_skills[:3])}")
         if opp.confidence == "High":
             task.add_why("High confidence estimate")
         elif opp.confidence == "Low":
@@ -87,11 +121,7 @@ class ApplyTaskProvider:
 
         return task
 
-    def _expected_value(self, opp: OpportunityView, context: MissionContext) -> float:
-        """Compute expected value for an apply task.
-
-        Combines interview probability with goal-specific weights.
-        """
+    def _expected_value(self, opp: OpportunitySnapshot, context: MissionContext) -> float:
         goal = context.goal
         base = opp.interview_probability / 100.0
 
@@ -106,6 +136,6 @@ class ApplyTaskProvider:
         else:
             return round(base * 100, 1)
 
-    def _uncertainty(self, opp: OpportunityView) -> float:
+    def _uncertainty(self, opp: OpportunitySnapshot) -> float:
         confidence_map = {"High": 2.0, "Medium": 8.0, "Low": 15.0}
         return confidence_map.get(opp.confidence, 10.0)

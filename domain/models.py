@@ -59,8 +59,6 @@ class TaskNode:
     _state: str = "pending"
     _why_lines: list[str] = field(default_factory=list)
 
-    # ── State ────────────────────────────────────────────────────────────
-
     @property
     def state(self) -> str:
         return self._state
@@ -89,8 +87,6 @@ class TaskNode:
         if self.estimated_minutes <= 0:
             return self.expected_value
         return self.expected_value / self.estimated_minutes
-
-    # ── Lifecycle ────────────────────────────────────────────────────────
 
     def can_execute(self) -> bool:
         """Check all BLOCKS / REQUIRES dependencies are completed."""
@@ -122,8 +118,6 @@ class TaskNode:
         if reason:
             self._why_lines.append(f"Failed: {reason}")
 
-    # ── Explanation ──────────────────────────────────────────────────────
-
     def why(self) -> list[str]:
         """Human-readable justification for this task."""
         lines = list(self._why_lines)
@@ -137,8 +131,6 @@ class TaskNode:
 
     def add_why(self, line: str) -> None:
         self._why_lines.append(line)
-
-    # ── Serialization ────────────────────────────────────────────────────
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -185,13 +177,15 @@ class TaskNode:
         return node
 
 
-# ── OpportunityView ──────────────────────────────────────────────────────────
+# ── OpportunitySnapshot ───────────────────────────────────────────────────────
 
 @dataclass
-class OpportunityView:
+class OpportunitySnapshot:
     """Read-model of an evaluated opportunity for task providers.
 
     Pure data — no DB references. Providers build tasks from this.
+    Named Snapshot because it is a stable read-model of a DecisionSnapshot,
+    not a UI projection.
     """
     snapshot_id: str
     opportunity_id: str
@@ -213,7 +207,7 @@ class OpportunityView:
     source: str = ""
 
     @classmethod
-    def from_snapshot(cls, snapshot, app=None, job=None) -> OpportunityView:
+    def from_snapshot(cls, snapshot, app=None, job=None) -> OpportunitySnapshot:
         """Build from a DecisionSnapshot DB row + optional related objects."""
         import json
         company = ""
@@ -258,6 +252,44 @@ class OpportunityView:
         )
 
 
+# ── ProviderResult ───────────────────────────────────────────────────────────
+
+@dataclass
+class ProviderResult:
+    """Output of a single TaskProvider.build() call.
+
+    Carries diagnostics alongside tasks so the planner and mission engine
+    can explain where tasks came from and why some opportunities were skipped.
+    """
+    provider: str
+    provider_version: str
+    tasks: list[TaskNode] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    statistics: dict = field(default_factory=dict)
+    execution_time_ms: float = 0.0
+
+    @property
+    def task_count(self) -> int:
+        return len(self.tasks)
+
+    @property
+    def total_estimated_value(self) -> float:
+        return sum(t.expected_value for t in self.tasks)
+
+    def merge(self, other: ProviderResult) -> ProviderResult:
+        """Combine two results from the same provider (e.g., paginated builds)."""
+        if other.provider != self.provider:
+            raise ValueError(f"Cannot merge {other.provider} into {self.provider}")
+        return ProviderResult(
+            provider=self.provider,
+            provider_version=self.provider_version,
+            tasks=self.tasks + other.tasks,
+            warnings=self.warnings + other.warnings,
+            statistics={**self.statistics, **other.statistics},
+            execution_time_ms=self.execution_time_ms + other.execution_time_ms,
+        )
+
+
 # ── Mission ──────────────────────────────────────────────────────────────────
 
 _MISSION_STATES = ("active", "paused", "failed", "completed")
@@ -268,7 +300,8 @@ class Mission:
     """A collection of tasks to execute within a time budget.
 
     The planner produces a Mission. The execution engine runs it.
-    A Mission can be paused and resumed.
+    A Mission can be paused and resumed. It tracks why tasks were
+    accepted, rejected, or deferred so debugging is traceable.
     """
     id: str
     generated_at: datetime
@@ -279,6 +312,12 @@ class Mission:
     tasks: list[TaskNode] = field(default_factory=list)
     state: str = "active"
     completed_task_ids: set[str] = field(default_factory=set)
+
+    # ── Planner diagnostics ─────────────────────────────────────────────
+    rejected_tasks: list[TaskNode] = field(default_factory=list)
+    deferred_tasks: list[TaskNode] = field(default_factory=list)
+    provider_results: list[ProviderResult] = field(default_factory=list)
+    plan_provenance: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.state not in _MISSION_STATES:
@@ -310,6 +349,19 @@ class Mission:
             "tasks": [t.to_dict() for t in self.tasks],
             "state": self.state,
             "completed_task_ids": list(self.completed_task_ids),
+            "rejected_tasks": [t.to_dict() for t in self.rejected_tasks],
+            "deferred_tasks": [t.to_dict() for t in self.deferred_tasks],
+            "provider_results": [
+                {
+                    "provider": r.provider,
+                    "version": r.provider_version,
+                    "task_count": r.task_count,
+                    "warnings": r.warnings,
+                    "statistics": r.statistics,
+                }
+                for r in self.provider_results
+            ],
+            "plan_provenance": self.plan_provenance,
         }
 
     @classmethod
@@ -324,6 +376,9 @@ class Mission:
             tasks=[TaskNode.from_dict(t) for t in data.get("tasks", [])],
             state=data.get("state", "active"),
             completed_task_ids=set(data.get("completed_task_ids", [])),
+            rejected_tasks=[TaskNode.from_dict(t) for t in data.get("rejected_tasks", [])],
+            deferred_tasks=[TaskNode.from_dict(t) for t in data.get("deferred_tasks", [])],
+            plan_provenance=data.get("plan_provenance", {}),
         )
 
 
@@ -335,7 +390,7 @@ class MissionContext:
 
     No globals. Every component receives the same context.
     """
-    time_budget: int = 60          # daily minutes available for mission tasks
+    time_budget: int = 60
     goal: str = "Get placed ASAP"
     today: date = field(default_factory=date.today)
     timezone: str = "UTC"
