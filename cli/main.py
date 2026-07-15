@@ -16,7 +16,7 @@ from rich import box
 from services.logging_setup import setup_logging
 from services.collector import collect_all
 from services.config import Config
-from ai.scorer import score_pending_jobs, _keyword_pre_score, SKILL_KEYWORDS
+from ai.scorer import score_pending_jobs, SKILL_KEYWORDS
 from ai.llm import ask
 from browser.assistant import BrowserAssistant, KNOWN_ATS_DOMAINS
 from tracker.applications import list_applications, transition_status, get_application
@@ -24,6 +24,45 @@ from tracker.tasks import list_pending_tasks, complete_task
 from database.connection import get_session
 from database.models import Job, Application, Task
 from sqlalchemy.orm import joinedload
+from resumes.registry import get_registry
+from resumes.fit_report import generate as generate_fit_report
+from resumes.skill_roadmap import build_roadmap
+from resumes.feed import build_feed
+from resumes.prepare import prepare
+from tracker.intelligence import (
+    compute_quality_score,
+    company_stats,
+    verify_application,
+)
+from tracker.reach import (
+    find_contact,
+    find_or_create_contact,
+    generate_email_draft,
+    log_interaction,
+    get_contact_interactions,
+)
+from tracker.outreach import (
+    outreach_summary,
+    template_performance,
+    company_responsiveness,
+    best_contact_time,
+)
+from tracker.outcomes import get_or_create_outcome, update_outcome, get_outcome
+from tracker.features import extract_features
+from tracker.decision import predict_interview, counterfactual
+from tracker.personal import (
+    learn_weights,
+    resume_stats,
+    resume_detail,
+    company_intelligence,
+    ats_intelligence,
+    timing_intelligence,
+    skill_intelligence,
+    personal_predict,
+    simulate,
+)
+from mission import run_mission
+from database.models import Contact, Interaction, ApplicationOutcome
 
 logger = logging.getLogger("jobzo")
 console = Console()
@@ -52,90 +91,8 @@ MISSION_NEXT = None
 
 
 def mission():
-    """Today's Mission — guided session."""
-    global MISSION_NEXT
-
-    with Progress(
-        TextColumn("[bold cyan]JobZo[/bold cyan] • Collecting jobs..."),
-        BarColumn(),
-        transient=True,
-    ) as p:
-        p.add_task("", total=None)
-        asyncio.run(collect_all())
-    with Progress(
-        TextColumn("[bold cyan]JobZo[/bold cyan] • Scoring jobs..."),
-        BarColumn(),
-        transient=True,
-    ) as p:
-        p.add_task("", total=None)
-        asyncio.run(score_pending_jobs())
-
-    session = get_session()
-    drafted = session.query(Application).filter(
-        Application.status.in_(["drafted", "ready"])
-    ).count()
-    submitted = session.query(Application).filter(
-        Application.status == "submitted"
-    ).count()
-    pending_tasks = session.query(Task).filter(Task.done == False).count()
-    interviews = session.query(Application).filter(
-        Application.status == "interview"
-    ).count()
-    session.close()
-
-    total_items = drafted + pending_tasks
-    done_items = submitted + interviews
-    progress_pct = min(int(done_items / max(total_items, 1) * 100), 100)
-
-    est_minutes = drafted * 3 + pending_tasks * 2
-
-    console.clear()
-    console.print()
-    console.print(Panel.fit(
-        "[bold yellow]🎯 Today's Mission[/bold yellow]\n\n"
-        f"Estimated time: [bold]{est_minutes} minutes[/bold]\n\n"
-        f"{'█' * (progress_pct // 10)}{'░' * (10 - progress_pct // 10)}  {progress_pct}%\n\n"
-        f"{'📋' if drafted else '✅'} Review [bold]{drafted}[/bold] new {'job' if drafted == 1 else 'jobs'}\n"
-        f"{'📝' if submitted else '✅'} {'📝 Apply to open positions' if submitted == 0 else f'Applied [bold]{submitted}[/bold] jobs'}\n"
-        f"{'📅' if pending_tasks else '✅'} {'📅 ' + str(pending_tasks) + ' follow-up' + ('s' if pending_tasks != 1 else '') + ' due' if pending_tasks else 'No pending tasks'}\n"
-        f"{'🎤' if interviews else '✅'} {'🎤 ' + str(interviews) + ' interview' + ('s' if interviews != 1 else '') + ' coming up' if interviews else 'No upcoming interviews'}\n",
-        box=box.ROUNDED,
-        padding=(1, 4),
-    ))
-
-    options = []
-    if drafted:
-        options.append(("[1]", "Review jobs", "_review_jobs"))
-    if submitted:
-        options.append(("[2]", "Check progress", "_show_progress"))
-    if pending_tasks:
-        options.append(("[3]", "Complete follow-ups", "_do_followups"))
-    if interviews:
-        options.append(("[4]", "Prepare for interviews", "_show_interviews"))
-    options.append(("[q]", "Quit", None))
-
-    console.print("What would you like to do?")
-    for key, label, _ in options:
-        console.print(f"  {key} {label}")
-
-    choice = input("\n> ").strip().lower()
-
-    if choice == "1" and drafted:
-        _review_jobs()
-    elif choice == "2" and submitted:
-        _show_progress()
-    elif choice == "3" and pending_tasks:
-        _do_followups()
-    elif choice == "4" and interviews:
-        _show_interviews()
-    elif choice == "q":
-        console.print("\n[green]Good luck today![/green]")
-        return
-    else:
-        console.print("\n[yellow]Invalid choice[/yellow]")
-        input("Press Enter to continue...")
-
-    mission()
+    """Mission Engine — guided daily workflow dashboard."""
+    run_mission()
 
 
 def _confidence_label(score: int) -> tuple[str, str]:
@@ -429,6 +386,69 @@ def _show_interviews():
 # ── CLI Commands ─────────────────────────────────────────────────────────────
 
 @app.command()
+def sync_companies():
+    """Sync the company registry YAML → database."""
+    from services.company_registry import sync_companies_from_registry
+
+    console.print("[bold cyan]JobZo[/bold cyan] — Syncing company registry...")
+    try:
+        result = sync_companies_from_registry()
+        console.print(f"[green]✓[/green] Created {result['created']} new companies")
+        console.print(f"[green]✓[/green] Updated {result['updated']} existing companies")
+        console.print(f"[green]✓[/green] Added {result['aliases_created']} aliases")
+        console.print(f"[cyan]Total:[/cyan] {result['total']} companies in database")
+    except Exception as e:
+        console.print(f"[red]✗ Sync failed:[/red] {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command(name="validate-registry")
+def validate_registry():
+    """Validate the company registry YAML files for correctness."""
+    from services.company_registry import validate_registry
+
+    console.print("[bold cyan]JobZo[/bold cyan] — Validating company registry...\n")
+    results = validate_registry()
+    passed = 0
+    failed = 0
+    errors = 0
+    for r in results:
+        if r["status"] == "PASS":
+            passed += 1
+            icon = "[green]✓[/green]"
+        elif r["status"] == "FAIL":
+            failed += 1
+            icon = "[red]✗[/red]"
+        else:
+            errors += 1
+            icon = "[yellow]⚠[/yellow]"
+        console.print(f"  {icon} {r['check']}")
+        for issue in r.get("issues", []):
+            console.print(f"       {issue}")
+    console.print()
+    if errors:
+        console.print(f"[yellow]Errors:[/yellow] {errors}")
+    if failed:
+        console.print(f"[red]Failed checks:[/red] {failed}")
+    console.print(f"[green]Passed:[/green] {passed}")
+    if failed == 0 and errors == 0:
+        console.print("\n[bold green]Registry validation PASSED[/bold green]")
+
+
+@app.command()
+def benchmark(
+    profile: str = typer.Option("", "--profile", "-p", help="Run only a specific profile (by name)"),
+):
+    """Run the benchmark suite — evaluate registry, retrieval, ranker, and scores."""
+    from benchmark.runner import run_all, print_results
+
+    console.print("[bold cyan]JobZo[/bold cyan] — Running benchmarks...\n")
+    profile_names = [p.strip() for p in profile.split(",") if p.strip()] if profile else None
+    results = run_all(profile_names)
+    print_results(results)
+
+
+@app.command()
 def collect(
     keywords: str = typer.Option("", help="Comma-separated keywords to search for"),
 ):
@@ -499,7 +519,8 @@ def rank(
     """Score all unscored jobs."""
     console.print("[bold cyan]JobZo[/bold cyan] — Ranking jobs...")
     skill_list = [s.strip() for s in skills.split(",") if s.strip()] or None
-    total = asyncio.run(score_pending_jobs(skill_list, experience))
+    r = asyncio.run(score_pending_jobs(skill_list, experience))
+    total = r["scored"]
     console.print(f"[green]✓[/green] Scored {total} jobs")
 
     _show_top_applications()
@@ -924,7 +945,8 @@ def daily(
 
     console.print("[bold]Step 2/3: Ranking jobs...[/bold]")
     skill_list = [s.strip() for s in skills.split(",") if s.strip()] or None
-    scored = asyncio.run(score_pending_jobs(skill_list, experience))
+    r = asyncio.run(score_pending_jobs(skill_list, experience))
+    scored = r["scored"]
     console.print(f"[green]✓[/green] {scored} jobs scored\n")
 
     console.print("[bold]Step 3/3: Applying to top 5...[/bold]")
@@ -992,6 +1014,689 @@ def skill_gap():
         console.print("\n[bold yellow]Skill Gaps (Consider Learning):[/bold yellow]")
         for s in missing[:5]:
             console.print(f"  • {s.capitalize()}")
+
+
+@app.command()
+def sync(
+    skills: str = typer.Option("", help="Comma-separated skill keywords"),
+    experience: int = typer.Option(1, help="Your years of experience"),
+):
+    """Refresh data: collect new jobs and score them."""
+    console.print("[bold cyan]JobZo Sync[/bold cyan] — Discovering new opportunities\n")
+
+    console.print("[bold]Step 1/2: Collecting jobs...[/bold]")
+    start = datetime.utcnow()
+    kw_list = [k.strip() for k in skills.split(",") if k.strip()] or None
+    collected = asyncio.run(collect_all(kw_list))
+    collect_time = (datetime.utcnow() - start).total_seconds()
+
+    console.print("[bold]Step 2/2: Scoring jobs...[/bold]")
+    start = datetime.utcnow()
+    skill_list = [s.strip() for s in skills.split(",") if s.strip()] or None
+    r = asyncio.run(score_pending_jobs(skill_list, experience))
+    scored = r["scored"]
+    score_time = (datetime.utcnow() - start).total_seconds()
+
+    total_time = collect_time + score_time
+
+    # Gather metrics from DB
+    session = get_session()
+    try:
+        total_jobs = session.query(Job).count()
+        eligible = session.query(Job).filter(Job.eligible == True).count()
+        ineligible = session.query(Job).filter(Job.eligible == False).count()
+        recommended = session.query(Application).filter(
+            Application.status.in_(["drafted", "recommended"])
+        ).count()
+        companies = session.query(Job.company).distinct().count()
+        duplicates = session.query(Job).filter(Job.eligible == False, Job.eligibility_reason.like("%duplicate%")).count()
+        # Count jobs with scrape metadata as proxy for pages scanned
+        scanned = session.query(Job).count()  # all discovered jobs
+    finally:
+        session.close()
+
+    console.print()
+    table = Table(show_header=False, box=box.SIMPLE)
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="bold")
+    table.add_row("Companies discovered", str(companies))
+    table.add_row("Total jobs found", str(total_jobs))
+    table.add_row("New this sync", str(collected))
+    table.add_row("Scored this sync", str(scored))
+    table.add_row("Eligible", str(eligible))
+    table.add_row("Ineligible (hidden)", str(ineligible))
+    table.add_row("Recommended/applications ready", str(recommended))
+    table.add_row("Collection time", f"{collect_time:.1f}s")
+    table.add_row("Scoring time", f"{score_time:.1f}s")
+    table.add_row("Total time", f"{total_time:.1f}s")
+    console.print(table)
+    console.print(f"\n[green]✓[/green] Sync complete. Run [bold]jobzo[/bold] to see your feed.")
+
+
+@app.command()
+def fit(
+    job_id: str = typer.Argument(..., help="Job ID to analyze"),
+):
+    """Show job fit report — how well your resume matches a specific job."""
+    session = get_session()
+    try:
+        job = session.get(Job, job_id)
+        if not job:
+            console.print(f"[red]Job not found: {job_id}[/red]")
+            return
+    finally:
+        session.close()
+
+    registry = get_registry()
+    jd_text = f"{job.title}\n{job.company}\n{job.location}\n{job.description}"
+    report = generate_fit_report(
+        job.company, job.title, jd_text, registry,
+        is_eligible=job.eligible, location=job.location,
+    )
+    console.print(Panel.fit(report.format_text(), box=box.ROUNDED, padding=(1, 2)))
+
+    if report.recommended_resume:
+        meta = registry.get(report.recommended_resume)
+        if meta:
+            from database.models import Application
+            app = session.query(Application).filter(Application.job_id == job_id).first()
+            if app:
+                prediction = predict_interview(app, job, jd_text)
+                cf = counterfactual(app, job, jd_text)
+                console.print()
+                console.print(Panel.fit(
+                    prediction.format_text(),
+                    box=box.ROUNDED,
+                    padding=(1, 2),
+                    title="Decision Intelligence",
+                ))
+                if cf.recommendation:
+                    console.print(f"\n[yellow]{cf.recommendation}[/yellow]")
+
+
+@app.command()
+def roadmap(
+    source: str = typer.Option("recommended", help="Source: recommended (default), all, applied"),
+    company: str = typer.Option("", help="Filter by company name"),
+    role: str = typer.Option("", help="Filter by role keyword"),
+    max_skills: int = typer.Option(20, help="Max skills to show"),
+):
+    """Show skill demand from jobs. Default: recommended jobs only."""
+    registry = get_registry()
+    company_filter = company or None
+    role_filter = role or None
+    road = build_roadmap(registry, status_filter=source, company_filter=company_filter, role_filter=role_filter)
+    console.print(Panel.fit(road.format_text(max_skills=max_skills), box=box.ROUNDED, padding=(1, 2)))
+
+
+@app.command()
+def prepare_for_interview(
+    job_id: str = typer.Argument(..., help="Job ID to prepare for"),
+):
+    """Generate interview preparation plan for a specific job."""
+    session = get_session()
+    try:
+        job = session.get(Job, job_id)
+        if not job:
+            console.print(f"[red]Job not found: {job_id}[/red]")
+            return
+        jd_text = f"{job.title}\n{job.company}\n{job.location}\n{job.description}"
+    finally:
+        session.close()
+
+    plan = prepare(job.company, job.title, jd_text, location=job.location)
+    console.print(Panel.fit(plan.format_text(), box=box.ROUNDED, padding=(1, 2)))
+
+
+@app.command()
+def quality(
+    job_id: str = typer.Argument(..., help="Job ID to analyze"),
+    resume: str = typer.Option("", help="Resume variant to evaluate"),
+):
+    """Compute pre-submission application quality score."""
+    session = get_session()
+    try:
+        job = session.get(Job, job_id)
+        if not job:
+            console.print(f"[red]Job not found: {job_id}[/red]")
+            return
+        jd_text = f"{job.title}\n{job.company}\n{job.location}\n{job.description}"
+    finally:
+        session.close()
+
+    registry = get_registry()
+    resume_name = resume or ""
+    if not resume_name:
+        # Use the best resume from the fit report
+        from resumes.fit_report import generate as generate_fit_report
+        report = generate_fit_report(job.company, job.title, jd_text, registry, is_eligible=job.eligible)
+        resume_name = report.recommended_resume
+
+    meta = registry.get(resume_name) if resume_name else None
+    if not meta:
+        console.print(f"[red]Resume '{resume_name}' not found[/red]")
+        console.print(f"Available: {', '.join(registry.names())}")
+        return
+
+    qs = compute_quality_score(job, meta, jd_text)
+    console.print(Panel.fit(
+        qs.format_text(),
+        box=box.ROUNDED,
+        padding=(1, 2),
+        title=f"Quality — {job.company} {job.title}",
+    ))
+
+    # Show improvement estimate
+    if qs.missing_skills:
+        console.print(f"\n[yellow]If you add '{', '.join(qs.missing_skills[:3])}', probability improves by ~{min(len(qs.missing_skills) * 3, 15)}%[/yellow]")
+
+
+@app.command()
+def verify(
+    application_id: str = typer.Argument(..., help="Application ID"),
+    ats_id: str = typer.Option("", help="ATS application ID"),
+    portal_url: str = typer.Option("", help="Applicant portal URL"),
+):
+    """Record ATS confirmation for an application."""
+    result = verify_application(application_id, ats_id=ats_id, portal_url=portal_url, confirmed=True)
+    if "error" in result:
+        console.print(f"[red]Error: {result['error']}[/red]")
+    else:
+        console.print(f"[green]✓[/green] Application {application_id} verified")
+
+
+@app.command()
+def crm(
+    company: str = typer.Option("", help="Filter by company"),
+):
+    """View applicant CRM — contacts, interactions, and follow-ups."""
+    session = get_session()
+    try:
+        if company:
+            contacts_q = session.query(Contact).filter(Contact.company.ilike(f"%{company}%")).all()
+        else:
+            contacts_q = session.query(Contact).order_by(Contact.last_contacted.desc().nullslast()).limit(20).all()
+    finally:
+        session.close()
+
+    if not contacts_q:
+        console.print("[yellow]No contacts yet. Add one with 'jobzo contact-add'[/yellow]")
+        return
+
+    table = Table(title=f"Contacts ({'company: ' + company if company else 'recent 20'})")
+    table.add_column("Name", style="cyan")
+    table.add_column("Company")
+    table.add_column("Role")
+    table.add_column("Status")
+    table.add_column("Next Follow-up")
+    table.add_column("Score")
+
+    for c in contacts_q:
+        status = ""
+        now = datetime.utcnow()
+        if c.next_followup and c.next_followup <= now:
+            status = "[red]Follow-up due[/red]"
+        elif c.last_contacted:
+            days = (now - c.last_contacted).days if c.last_contacted else 0
+            status = f"[yellow]{days}d ago[/yellow]"
+        next_up = c.next_followup.strftime("%b %d") if c.next_followup else ""
+        table.add_row(
+            c.name, c.company, c.role, status, next_up,
+            f"{'★' * min(c.relationship_score // 20 + 1, 5)}",
+        )
+
+    console.print(table)
+
+
+@app.command(name="contact-add")
+def contact_add(
+    company: str = typer.Argument(..., help="Company name"),
+    name: str = typer.Argument(..., help="Contact name"),
+    role: str = typer.Option("", help="Role (Recruiter, HM, etc.)"),
+    email: str = typer.Option("", help="Email address"),
+    linkedin: str = typer.Option("", help="LinkedIn URL"),
+):
+    """Add a contact to the CRM."""
+    session = get_session()
+    try:
+        contact = Contact(
+            company=company,
+            name=name,
+            role=role,
+            email=email,
+            linkedin=linkedin,
+        )
+        session.add(contact)
+        session.commit()
+        console.print(f"[green]✓[/green] Added {name} ({role}) at {company}")
+    except Exception as e:
+        session.rollback()
+        console.print(f"[red]Error: {e}[/red]")
+    finally:
+        session.close()
+
+
+@app.command()
+def reach(
+    application_id: str = typer.Argument(..., help="Application ID"),
+):
+    """Generate a reach-out email for an application and track it."""
+    session = get_session()
+    try:
+        app = session.query(Application).options(
+            joinedload(Application.job)
+        ).filter(Application.id.startswith(application_id)).first()
+        if not app:
+            console.print(f"[red]Application matching '{application_id}' not found[/red]")
+            return
+        job = app.job
+        if not job:
+            console.print("[red]Application has no linked job[/red]")
+            return
+
+        contact = find_contact(session, job.company)
+        if not contact:
+            name = input(f"  Recruiter name for {job.company}: ").strip() or "Hiring Team"
+            role = input(f"  Role (Recruiter/HM, default Recruiter): ").strip() or "Recruiter"
+            contact = Contact(company=job.company, name=name, role=role, source="jobzo_reach")
+            session.add(contact)
+            session.commit()
+            session.refresh(contact)
+
+        contact_name = contact.name
+        contact_role = contact.role
+        contact_id = contact.id
+        company = job.company
+        title = job.title
+        app_id = app.id
+    finally:
+        session.close()
+
+    draft = generate_email_draft(company, title, contact_name)
+
+    console.print(Panel.fit(
+        f"[bold blue]Reach-Out Draft[/bold blue]\n"
+        f"\n"
+        f"[bold]To:[/bold] {contact_name} ({contact_role}) at {company}\n"
+        f"[bold]Re:[/bold] {title}\n"
+        f"\n"
+        f"[bold]Subject:[/bold] {draft['subject']}\n"
+        f"\n"
+        f"{draft['body']}",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+
+    action = input("\nMark as sent? [y/n/c] (y=mark sent, c=customize, n=cancel): ").strip().lower()
+    if action == "c":
+        subject = input("Subject: ").strip() or draft["subject"]
+        body = input("Body (multi-line, empty line to finish):\n").strip()
+        lines = []
+        while True:
+            line = input()
+            if not line:
+                break
+            lines.append(line)
+        body = body + "\n" + "\n".join(lines) if lines else body
+        draft = {"subject": subject, "body": body}
+        action = input("\nSend this customized version? [y/n]: ").strip().lower()
+
+    if action == "y":
+        interaction_id = log_interaction(contact_id, app_id, draft["subject"], draft["body"])
+        console.print(f"[green]✓[/green] Reach-out logged (ID: {interaction_id[:8]})")
+    else:
+        console.print("[yellow]Reach-out skipped[/yellow]")
+
+
+@app.command(name="contact-interactions")
+def contact_interactions(
+    contact_id: str = typer.Argument(..., help="Contact ID"),
+):
+    """View all interactions with a specific contact."""
+    session = get_session()
+    try:
+        contact = session.get(Contact, contact_id)
+        if not contact:
+            console.print(f"[red]Contact '{contact_id}' not found[/red]")
+            return
+        contact_name = contact.name
+        contact_company = contact.company
+    finally:
+        session.close()
+
+    interactions = get_contact_interactions(contact_id)
+
+    if not interactions:
+        console.print(f"[yellow]No interactions with {contact_name} yet[/yellow]")
+        return
+
+    table = Table(title=f"Interactions with {contact_name} ({contact_company})")
+    table.add_column("Date")
+    table.add_column("Type")
+    table.add_column("Direction")
+    table.add_column("Subject")
+    table.add_column("Outcome")
+
+    for i in interactions:
+        occurred = i["occurred_at"]
+        table.add_row(
+            occurred.strftime("%b %d") if occurred else "-",
+            i["type"],
+            i["direction"],
+            i["subject"][:40] if i["subject"] else "-",
+            i["outcome"] or "-",
+        )
+
+    console.print(table)
+
+
+@app.command()
+def decide(
+    application_id: str = typer.Argument(..., help="Application ID"),
+    simulate_resume: str = typer.Option("", "--simulate-resume", help="Simulate a different resume"),
+    simulate_skill: str = typer.Option("", "--simulate-skill", help="Simulate adding a skill"),
+):
+    """Interview probability prediction with personalized weights and simulation."""
+    session = get_session()
+    try:
+        app = session.query(Application).options(
+            joinedload(Application.job)
+        ).filter(Application.id.startswith(application_id)).first()
+        if not app:
+            console.print(f"[red]Application '{application_id}' not found[/red]")
+            return
+        job = app.job
+        if not job:
+            console.print("[red]Application has no linked job[/red]")
+            return
+    finally:
+        session.close()
+
+    # Show personalized weights if data available
+    weights = learn_weights()
+    if weights.confidence != "Low":
+        console.print(Panel.fit(
+            weights.format_text(),
+            box=box.ROUNDED,
+            padding=(1, 1),
+            title="Personal Intelligence",
+        ))
+        console.print()
+
+    # Show simulation if requested
+    if simulate_resume or simulate_skill:
+        changes = []
+        if simulate_resume:
+            changes.append({"kind": "resume", "value": simulate_resume})
+        if simulate_skill:
+            changes.append({"kind": "skill", "skill": simulate_skill, "count": 1})
+        result = simulate(app, changes, job)
+        console.print(Panel.fit(
+            result.format_text(),
+            box=box.ROUNDED,
+            padding=(1, 2),
+            title=f"Simulation — {job.company} {job.title}",
+        ))
+        return
+
+    # Use personal prediction
+    pred = personal_predict(app, job, weights=weights)
+    cf = counterfactual(app, job)
+
+    lines = [
+        f"  Interview Probability: {pred['score']:.0f}%",
+        f"  Confidence: {pred['confidence']}",
+        f"",
+        f"  Breakdown",
+    ]
+    for b in pred["breakdown"]:
+        lines.append(f"    {b['label']:25s}  {b['weight']:4.0%}  {b['score']:.0f}/100")
+    if pred["reasons"]:
+        lines.append(f"  Why This Helps")
+        for r in pred["reasons"][:4]:
+            lines.append(f"    {r}")
+    if pred["risks"]:
+        lines.append(f"  Risks")
+        for r in pred["risks"][:4]:
+            lines.append(f"    {r}")
+
+    console.print(Panel.fit(
+        "\n".join(lines),
+        box=box.ROUNDED,
+        padding=(1, 2),
+        title=f"Decision — {job.company} {job.title}",
+    ))
+
+    if cf.recommendation:
+        console.print(f"\n[bold yellow]Counterfactual[/bold yellow]")
+        console.print(f"  {cf.recommendation}")
+        if cf.action and cf.action != "Do not apply":
+            console.print(f"  Action: {cf.action}")
+
+    # Show simulate hint
+    console.print(f"\n[dim]Run with --simulate-resume backend_v3 or --simulate-skill Redis to test changes[/dim]")
+
+
+@app.command()
+def outcome(
+    application_id: str = typer.Argument(..., help="Application ID"),
+    rejection_reason: str = typer.Option("", "--reason", help="Rejection reason"),
+    feedback: str = typer.Option("", "--feedback", help="Feedback received"),
+    interview_rounds: int = typer.Option(0, "--rounds", help="Number of interview rounds"),
+    salary: str = typer.Option("", "--salary", help="Salary offered"),
+):
+    """View or update application outcome."""
+    if any([rejection_reason, feedback, interview_rounds, salary]):
+        kwargs = {}
+        if rejection_reason:
+            kwargs["rejection_reason"] = rejection_reason
+        if feedback:
+            kwargs["feedback"] = feedback
+        if interview_rounds:
+            kwargs["interview_rounds"] = interview_rounds
+        if salary:
+            kwargs["salary"] = salary
+        result = update_outcome(application_id, **kwargs)
+        if "error" in result:
+            console.print(f"[red]{result['error']}[/red]")
+        else:
+            console.print(f"[green]✓[/green] Outcome updated")
+        return
+
+    data = get_outcome(application_id)
+    if not data:
+        console.print("[yellow]No outcome recorded yet. Status transitions auto-record outcomes.[/yellow]")
+        return
+
+    lines = [
+        f"  Application:   {data['application_id'][:8]}",
+        f"  Company:       {data['company']}",
+        f"  Role:          {data['role']}",
+        f"  Resume:        {data['resume_used']}",
+        f"  ATS:           {data['ats'] or '—'}",
+    ]
+    dates = []
+    for label, key in [("Applied", "applied_at"), ("Viewed", "viewed_at"),
+                        ("Online Assessment", "oa_at"), ("Interview", "interview_at"),
+                        ("Offer", "offer_at"), ("Rejected", "rejected_at"),
+                        ("Ghosted", "ghosted_at")]:
+        val = data.get(key)
+        if val:
+            dates.append(f"  {label+':':20s} {val.strftime('%b %d, %Y') if hasattr(val, 'strftime') else val}")
+    lines.extend(dates)
+    if data["rejection_reason"]:
+        lines.append(f"  Rejection:      {data['rejection_reason']}")
+    if data["feedback"]:
+        lines.append(f"  Feedback:      {data['feedback']}")
+    if data["interview_rounds"]:
+        lines.append(f"  Rounds:        {data['interview_rounds']}")
+    if data["salary"]:
+        lines.append(f"  Salary:        {data['salary']}")
+
+    console.print(Panel.fit("\n".join(lines), box=box.ROUNDED, padding=(1, 2), title="Application Outcome"))
+
+
+@app.command()
+def personal(
+    view: str = typer.Option("weights", "--view", "-v", help="View: weights, resumes, companies, ats, timing, skills, all"),
+    company: str = typer.Option("", "--company", help="Filter company intelligence"),
+    resume: str = typer.Option("", "--resume", help="Filter resume stats"),
+):
+    """Personal Intelligence Dashboard — your personalized insights."""
+    if view in ("weights", "all"):
+        w = learn_weights()
+        console.print(Panel.fit(w.format_text(), box=box.ROUNDED, padding=(1, 2), title="Personal Weights"))
+
+    if view in ("resumes", "all") or resume:
+        if resume:
+            r = resume_detail(resume)
+            if r:
+                console.print(Panel.fit(r.format_text(), box=box.ROUNDED, padding=(1, 2), title="Resume Intelligence"))
+            else:
+                console.print(f"[yellow]No data for resume '{resume}'[/yellow]")
+        else:
+            rows = resume_stats()
+            if rows:
+                table = Table(title="Resume Intelligence")
+                table.add_column("Resume")
+                table.add_column("Applications")
+                table.add_column("Interviews")
+                table.add_column("Rate")
+                table.add_column("Confidence")
+                for r in rows:
+                    table.add_row(r.name, str(r.applications), str(r.interviews),
+                                  f"{r.interview_rate:.1f}%", r.confidence)
+                console.print(table)
+            else:
+                console.print("[yellow]No resume outcome data yet[/yellow]")
+
+    if view in ("companies", "all"):
+        rows = company_intelligence(company or None)
+        if rows:
+            table = Table(title=f"Company Intelligence{f' — {company}' if company else ''}")
+            table.add_column("Company")
+            table.add_column("Apps")
+            table.add_column("Replies")
+            table.add_column("Interviews")
+            table.add_column("Offers")
+            table.add_column("Avg Reply")
+            table.add_column("Best Resume")
+            for r in rows[:10]:
+                table.add_row(r.company, str(r.applications), str(r.replies),
+                              str(r.interviews), str(r.offers),
+                              f"{r.avg_reply_days:.0f}d" if r.avg_reply_days else "-",
+                              r.best_resume)
+            console.print(table)
+        else:
+            console.print("[yellow]No company data yet[/yellow]")
+
+    if view in ("ats", "all"):
+        rows = ats_intelligence()
+        if rows:
+            table = Table(title="ATS Intelligence")
+            table.add_column("ATS")
+            table.add_column("Applications")
+            table.add_column("Interviews")
+            table.add_column("Interview Rate")
+            for r in rows:
+                table.add_row(r["ats"], str(r["applications"]), str(r["interviews"]),
+                              f"{r['interview_rate']:.1f}%")
+            console.print(table)
+        else:
+            console.print("[yellow]No ATS data yet[/yellow]")
+
+    if view in ("timing", "all"):
+        info = timing_intelligence()
+        if info.get("by_day"):
+            table = Table(title="Timing Intelligence — Best Days")
+            table.add_column("Day")
+            table.add_column("Apps")
+            table.add_column("Interviews")
+            table.add_column("Rate")
+            table.add_column("Confidence")
+            for d in info["by_day"]:
+                if d["applications"] > 0:
+                    table.add_row(d["day"], str(d["applications"]), str(d["interviews"]),
+                                  f"{d['rate']:.1f}%", d["confidence"])
+            console.print(table)
+        else:
+            console.print("[yellow]Not enough timing data yet[/yellow]")
+
+    if view in ("skills", "all"):
+        rows = skill_intelligence()
+        if rows:
+            table = Table(title="Skill Intelligence — From Successful Applications")
+            table.add_column("Skill")
+            table.add_column("Count")
+            table.add_column("Frequency")
+            for r in rows[:15]:
+                table.add_row(r["skill"], str(r["count"]), f"{r['frequency']:.0f}%")
+            console.print(table)
+            if rows:
+                top = rows[0]["skill"]
+                console.print(f"\n[yellow]Learning '{top}' may improve opportunities across target roles[/yellow]")
+        else:
+            console.print("[yellow]No skill data yet. Apply to more jobs to see patterns.[/yellow]")
+
+
+@app.command()
+def outreach(
+    detail: str = typer.Option("", "--detail", "-d", help="Show detail: templates, companies, timing"),
+):
+    """Outreach Intelligence — reply analytics and template performance."""
+    summary = outreach_summary()
+    console.print(Panel.fit(
+        summary.format_text(),
+        box=box.ROUNDED,
+        padding=(1, 2),
+        title="Outreach Intelligence",
+    ))
+
+    if detail == "templates":
+        rows = template_performance()
+        if not rows:
+            console.print("[yellow]No outreach data yet[/yellow]")
+            return
+        table = Table(title="Template Performance")
+        table.add_column("Subject")
+        table.add_column("Sent")
+        table.add_column("Replies")
+        table.add_column("Rate")
+        for r in rows[:10]:
+            table.add_row(
+                r["subject"][:50],
+                str(r["sent"]),
+                str(r["replied"]),
+                f"{r['reply_rate']:.0f}%",
+            )
+        console.print(table)
+
+    elif detail == "companies":
+        rows = company_responsiveness()
+        if not rows:
+            console.print("[yellow]No outreach data yet[/yellow]")
+            return
+        table = Table(title="Company Responsiveness")
+        table.add_column("Company")
+        table.add_column("Sent")
+        table.add_column("Replies")
+        table.add_column("Rate")
+        for r in rows[:10]:
+            table.add_row(
+                r["company"],
+                str(r["sent"]),
+                str(r["replied"]),
+                f"{r['reply_rate']:.0f}%",
+            )
+        console.print(table)
+
+    elif detail == "timing":
+        info = best_contact_time()
+        if info["total_replies_analyzed"] == 0:
+            console.print("[yellow]Not enough reply data to analyze timing[/yellow]")
+            return
+        console.print(f"[bold]Best day:[/bold] {info['best_day']} ({info['best_day_count']} replies)")
+        console.print(f"[bold]Best hour:[/bold] {info['best_hour']}:00 ({info['best_hour_count']} replies)")
 
 
 @app.command()

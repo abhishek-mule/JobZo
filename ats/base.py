@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urljoin
 
 
 @dataclass
@@ -18,6 +19,10 @@ class ParseResult:
     confidence: float = 1.0
     parser_name: str = "generic"
     jobs_found: int = 0
+    collected: int = 0
+    valid: int = 0
+    errors: list[str] = field(default_factory=list)
+    duration_ms: int = 0
 
 
 class ATSParser(ABC):

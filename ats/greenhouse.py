@@ -59,6 +59,8 @@ class GreenhouseParser(ATSParser):
             confidence=self.confidence,
             parser_name=self.name,
             jobs_found=len(jobs),
+            collected=len(seen),
+            valid=len(jobs),
         )
 
     def _extract_company(self, url: str) -> str:

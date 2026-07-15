@@ -40,7 +40,10 @@ class CompanyPagesProvider(JobProvider):
         for company, result in zip(companies, results):
             if isinstance(result, Exception):
                 logger.warning("Company %s failed: %s", company["name"], result)
-                health_report.append({"company": company["name"], "status": "error", "error": str(result), "jobs": 0})
+                health_report.append({
+                    "company": company["name"], "status": "error", "jobs": 0,
+                    "diagnostic": str(result)[:80], "suggestion": "Check logs for details",
+                })
                 continue
             jobs, report = result
             all_jobs.extend(jobs)
@@ -59,24 +62,46 @@ class CompanyPagesProvider(JobProvider):
 
         start = time.time()
 
-        if is_fresh(target_url):
+        cache_entry = get_cache(target_url)
+        if cache_entry and is_fresh(target_url):
+            age_h = int((datetime.utcnow() - cache_entry.fetched_at).total_seconds() / 3600)
+            diag = f"cached {age_h}h ago"
+            if cache_entry.jobs_found == 0:
+                diag += " (0 jobs — retry in 1h)"
             logger.debug("Cache fresh for %s, skipping fetch", name)
-            return [], {"company": name, "status": "cached", "jobs": 0, "time": 0}
+            return [], {
+                "company": name, "status": "cached", "jobs": cache_entry.jobs_found,
+                "parser": cache_entry.parser, "diagnostic": diag, "time": 0,
+            }
 
         html, status_code, headers = await self._fetch_html(target_url)
 
         elapsed = int((time.time() - start) * 1000)
 
+        used_playwright = False
         if status_code != 200 or not html or len(html) < 500:
             html = await self._fetch_with_playwright(target_url)
+            used_playwright = True
             if not html or len(html) < 500:
-                logger.warning("Empty page for %s", name)
-                return [], {"company": name, "status": "empty", "jobs": 0, "time": elapsed}
+                reason = f"HTTP {status_code}" if status_code else "Network error"
+                if used_playwright:
+                    reason += " (Playwright also failed)"
+                suggestion = "Check URL or add Playwright fallback"
+                if status_code in (403, 429):
+                    suggestion = "Blocked by anti-bot (Cloudflare?) — needs Playwright or proxy"
+                elif status_code == 404:
+                    suggestion = "URL changed — find new career page"
+                logger.warning("Empty page for %s: %s", name, reason)
+                return [], {
+                    "company": name, "status": "empty", "jobs": 0,
+                    "diagnostic": reason, "suggestion": suggestion, "time": elapsed,
+                }
 
         parser = detect(target_url)
         doc = ParsedDocument(html=html, url=target_url)
         result = await parser.parse(doc)
 
+        html_kb = len(html) // 1024
         matched_jobs = self._filter_jobs(result.jobs, company_keywords, keywords)
 
         set_cache(
@@ -98,12 +123,24 @@ class CompanyPagesProvider(JobProvider):
                 raw_html=html,
             ))
 
+        diagnostic_parts = [f"{html_kb}KB"]
+        if used_playwright:
+            diagnostic_parts.append("Playwright")
+        if result.errors:
+            diagnostic_parts.append(f"errors: {'; '.join(result.errors[:2])}")
+        if result.jobs_found == 0:
+            diagnostic_parts.append("no job links matched")
+        elif len(matched_jobs) < result.jobs_found:
+            diagnostic_parts.append(f"{len(matched_jobs)}/{result.jobs_found} after filter")
+
         return raw_jobs, {
             "company": name,
             "status": "ok",
             "jobs": len(matched_jobs),
+            "total_found": result.jobs_found,
             "parser": parser.name,
             "confidence": result.confidence,
+            "diagnostic": ", ".join(diagnostic_parts),
             "time": elapsed,
         }
 
@@ -163,7 +200,12 @@ class CompanyPagesProvider(JobProvider):
             parser = r.get("parser", "")
             confidence = r.get("confidence", "")
             time_ms = r.get("time", 0)
+            diag = r.get("diagnostic", "")
+            suggestion = r.get("suggestion", "")
+            if suggestion:
+                diag = f"{diag} — {suggestion}" if diag else suggestion
             logger.info(
-                "  %s %-20s %2d jobs  %-10s  conf=%s  %dms",
-                status_icon, r["company"], jobs, parser, str(confidence), time_ms,
+                "  %s %-20s %2d jobs  %-12s conf=%-5s %5dms  %s",
+                status_icon, r["company"], jobs, parser, str(confidence) if confidence != "" else "-",
+                time_ms, diag,
             )

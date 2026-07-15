@@ -30,7 +30,8 @@ KNOWN_ATS_DOMAINS = {
     "myworkdayjobs.com", "jobs.workday.com", "successfactors.com",
     "sap.com", "linkedin.com", "indeed.com", "glassdoor.com",
     "ziprecruiter.com", "monster.com", "careerbuilder.com",
-    "ycombinator.com",
+    "ycombinator.com", "teamtailor.com", "personio.com",
+    "personio.de",
 }
 
 FIELD_MAP = {
@@ -133,6 +134,91 @@ FIELD_MAP = {
         "aria": ["cover-letter", "cover", "additional-info"],
         "name": ["cover", "cover-letter", "message", "additional-info", "comments", "notes"],
         "placeholder": ["Cover letter", "Cover", "Additional information", "Message"],
+    },
+    # Application-specific fields (select, radio, checkbox)
+    "country": {
+        "label": "Country of residence",
+        "select_options": ["country", "residence", "citizenship"],
+        "aria": ["country", "residence", "citizenship", "country-of-residence"],
+        "name": ["country", "country-of-residence", "citizenship_country"],
+    },
+    "state": {
+        "label": "State",
+        "select_options": ["state", "province", "region"],
+        "aria": ["state", "province", "region"],
+        "name": ["state", "province", "region"],
+    },
+    "city": {
+        "label": "City",
+        "aria": ["city", "town", "current-city"],
+        "name": ["city", "town", "current-city"],
+        "placeholder": ["City", "Town"],
+    },
+    "visa_sponsorship": {
+        "label": "Sponsorship",
+        "radio_group": ["sponsor", "visa", "authorization", "work-permit"],
+        "aria": ["sponsor", "visa", "require-sponsorship", "sponsorship"],
+        "name": ["sponsor", "visa", "require_sponsorship", "requires_visa", "work_authorization"],
+    },
+    "employment_restrictions": {
+        "label": "Employment restrictions",
+        "radio_group": ["restriction", "agreement", "non-compete", "employment-agreement"],
+        "aria": ["restrictions", "employment-agreement", "non-compete"],
+        "name": ["restrictions", "employment_agreement", "non_compete", "employment_restrictions"],
+    },
+    "accommodations": {
+        "label": "Accommodations",
+        "aria": ["accommodation", "accessibility", "adjustment", "disability-accommodation"],
+        "name": ["accommodation", "accommodations", "accessibility", "adjustment", "interview_accommodation"],
+        "placeholder": ["Accommodations", "Accessibility", "Adjustments"],
+    },
+    "gender": {
+        "label": "Gender",
+        "select_group": ["gender", "sex"],
+        "aria": ["gender", "sex"],
+        "name": ["gender", "sex"],
+    },
+    "veteran_status": {
+        "label": "Veteran status",
+        "radio_group": ["veteran", "military", "protected-veteran"],
+        "aria": ["veteran", "military-service", "protected-veteran"],
+        "name": ["veteran", "veteran_status", "military_service", "protected_veteran"],
+    },
+    "disability_status": {
+        "label": "Disability status",
+        "radio_group": ["disability", "disabled", "disability-status"],
+        "aria": ["disability", "disability-status", "have-disability"],
+        "name": ["disability", "disability_status", "disability_status"],
+    },
+    "pronouns": {
+        "label": "Pronouns",
+        "aria": ["pronoun", "pronouns", "preferred-pronouns"],
+        "name": ["pronoun", "pronouns", "preferred_pronouns"],
+        "placeholder": ["Pronouns", "Preferred pronouns"],
+    },
+    "ethnicity": {
+        "label": "Ethnicity",
+        "select_group": ["ethnicity", "race", "ethnic-group"],
+        "aria": ["ethnicity", "race", "ethnic-group"],
+        "name": ["ethnicity", "race", "ethnic_group", "race_ethnicity"],
+    },
+    "previously_employed": {
+        "label": "Previously employed",
+        "radio_group": ["previously-employed", "former-employee", "rehire", "previously-worked"],
+        "aria": ["previously-employed", "former-employee", "previously-worked-here"],
+        "name": ["previously_employed", "former_employee", "rehire_eligible"],
+    },
+    "website": {
+        "label": "Website",
+        "aria": ["website", "portfolio", "personal-website", "url"],
+        "name": ["website", "portfolio", "personal_website", "url", "personal_url"],
+        "placeholder": ["Website", "Portfolio", "Personal website"],
+    },
+    "linkedin_headline": {
+        "label": "Headline",
+        "aria": ["headline", "professional-headline", "tagline"],
+        "name": ["headline", "professional_headline", "tagline"],
+        "placeholder": ["Headline", "Professional headline"],
     },
 }
 
@@ -259,6 +345,19 @@ class BrowserAssistant:
 
         p = self._page
 
+        # Determine input type from FIELD_MAP hints
+        has_select = "select_options" in rules or "select_group" in rules
+        has_radio = "radio_group" in rules
+
+        # For select/radio fields, use dedicated handlers first
+        if has_select:
+            if await self._fill_select(p, rules, value):
+                return True
+        if has_radio:
+            if await self._fill_radio(p, rules, value):
+                return True
+
+        # For text-like fields, use existing fill strategies
         async def try_label():
             label = rules.get("label", "")
             if not label:
@@ -296,14 +395,19 @@ class BrowserAssistant:
 
         async def try_name():
             for n in rules.get("name", []):
-                for tag in ["input", "textarea"]:
+                for tag in ["input", "textarea", "select"]:
                     try:
                         loc = p.locator(f"{tag}[name*='{n}' i], {tag}[id*='{n}' i], {tag}[data-testid*='{n}' i]")
                         count = await loc.count()
                         for i in range(count):
                             el = loc.nth(i)
                             if await el.is_visible():
-                                await el.fill(value)
+                                tag_name = await el.evaluate("el => el.tagName.toLowerCase()") if True else ""
+                                # Use select_option for <select>, fill for others
+                                if tag_name == "select":
+                                    await el.select_option(value)
+                                else:
+                                    await el.fill(value)
                                 return True
                     except Exception:
                         continue
@@ -337,8 +441,174 @@ class BrowserAssistant:
 
         return False
 
+    async def _fill_select(self, page, rules: dict, value: str) -> bool:
+        """Fill a <select> dropdown by matching label text to option value."""
+        label_keywords = rules.get("select_options", []) or rules.get("select_group", []) or rules.get("name", [])
+        value_lower = value.lower()
+
+        # Strategy 1: find <select> by label text
+        for keyword in label_keywords:
+            try:
+                loc = page.locator(f"label:has-text('{keyword}')")
+                count = await loc.count()
+                for i in range(count):
+                    label_el = loc.nth(i)
+                    for_id = await label_el.get_attribute("for")
+                    if for_id:
+                        select = page.locator(f"select#{for_id}")
+                    else:
+                        select = label_el.locator("xpath=following-sibling::select")
+                    if await select.count():
+                        options = await select.locator("option").all_inner_texts()
+                        option_values = await select.locator("option").evaluate_all(
+                            "els => els.map(el => el.value)"
+                        )
+                        for opt_text, opt_val in zip(options, option_values):
+                            if value_lower in opt_text.lower() or value_lower == opt_val.lower()[:len(value_lower)]:
+                                await select.first.select_option(opt_val or opt_text)
+                                return True
+            except Exception:
+                continue
+
+        # Strategy 2: find <select> by aria-label or name
+        for attr in ["aria-label", "name", "id"]:
+            for keyword in label_keywords:
+                try:
+                    select = page.locator(f"select[{attr}*='{keyword}' i]")
+                    count = await select.count()
+                    for i in range(count):
+                        el = select.nth(i)
+                        if await el.is_visible():
+                            options = await el.locator("option").all_inner_texts()
+                            option_values = await el.locator("option").evaluate_all(
+                                "els => els.map(el => el.value)"
+                            )
+                            for opt_text, opt_val in zip(options, option_values):
+                                if value_lower in opt_text.lower() or value_lower == opt_val.lower()[:len(value_lower)]:
+                                    await el.select_option(opt_val or opt_text)
+                                    return True
+                except Exception:
+                    continue
+
+        return False
+
+    async def _fill_radio(self, page, rules: dict, value: str) -> bool:
+        """Fill a radio button group by matching label/name to value."""
+        label_keywords = rules.get("radio_group", []) or rules.get("name", [])
+        value_lower = value.lower().strip()
+
+        # Determine the target option: Yes/No or specific value
+        yes_no = value_lower in ("yes", "no", "true", "false")
+        target = "yes" if value_lower in ("yes", "true") else "no" if value_lower in ("no", "false") else value
+
+        def _find_radio_by_name(name_val: str):
+            return page.locator(f"input[type='radio'][name='{name_val}']")
+
+        # Strategy 1: find radio group by label containing keyword
+        for keyword in label_keywords:
+            try:
+                # Look for a label containing the keyword
+                label_loc = page.locator(f"label:has-text('{keyword}')")
+                label_count = await label_loc.count()
+                for li in range(label_count):
+                    label_el = label_loc.nth(li)
+                    label_text = (await label_el.inner_text()).lower()
+                    # Try to find radio inputs within the same container or following
+                    parent = label_el.locator("xpath=ancestor::fieldset | ancestor::div[contains(@class,'field')] | ancestor::li")
+                    if await parent.count():
+                        parent = parent.first
+                    else:
+                        parent = label_el.locator("xpath=..")
+                    radios = parent.locator("input[type='radio']")
+                    radio_count = await radios.count()
+                    for ri in range(radio_count):
+                        radio = radios.nth(ri)
+                        radio_label = (await page.locator(f"label[for='{(await radio.get_attribute('id')) or ''}']").inner_text()).lower() if await radio.get_attribute('id') else ""
+                        radio_value = (await radio.get_attribute("value")) or ""
+                        radio_text = radio_label or radio_value.lower()
+                        if yes_no:
+                            if target in radio_text or (target == "yes" and radio_value.lower() in ("yes", "true", "1")):
+                                await radio.check()
+                                return True
+                            if target == "no" and radio_value.lower() in ("no", "false", "0"):
+                                await radio.check()
+                                return True
+                        else:
+                            if target.lower() in radio_text:
+                                await radio.check()
+                                return True
+            except Exception:
+                continue
+
+        # Strategy 2: find radio group by name attribute
+        for keyword in label_keywords:
+            try:
+                radios = page.locator(f"input[type='radio'][name*='{keyword}' i]")
+                count = await radios.count()
+                for ri in range(count):
+                    radio = radios.nth(ri)
+                    radio_value = (await radio.get_attribute("value")) or ""
+                    # Find associated label
+                    radio_id = await radio.get_attribute("id")
+                    label_text = ""
+                    if radio_id:
+                        try:
+                            label_text = (await page.locator(f"label[for='{radio_id}']").inner_text()).lower()
+                        except Exception:
+                            pass
+                    match_text = label_text or radio_value.lower()
+                    if yes_no:
+                        if target in match_text:
+                            await radio.check()
+                            return True
+                    else:
+                        if target.lower() in match_text:
+                            await radio.check()
+                            return True
+            except Exception:
+                continue
+
+        return False
+
+    async def _fill_checkbox(self, page, rules: dict, value: bool | str) -> bool:
+        """Check or uncheck a checkbox by label."""
+        label_keywords = rules.get("label", "")
+        should_check = value is True or str(value).lower() in ("yes", "true", "1")
+        for keyword in [label_keywords] if label_keywords else rules.get("name", []):
+            try:
+                cb = page.get_by_label(keyword, exact=False)
+                if await cb.count():
+                    if should_check:
+                        await cb.first.check()
+                    else:
+                        await cb.first.uncheck()
+                    return True
+            except Exception:
+                continue
+        return False
+
     async def _upload_resume(self, resume_path: str) -> bool:
-        full_path = str(RESUME_DIR / resume_path)
+        # Look up the resume in the registry to get the actual file path
+        from resumes.registry import get_registry
+        registry = get_registry()
+        meta = registry.get(resume_path)
+        if meta:
+            file_path = meta.file
+            if Path(file_path).is_absolute():
+                full_path = file_path
+            else:
+                full_path = str(RESUME_DIR.parent / file_path)
+        else:
+            # Fallback: try adding .pdf extension
+            for candidate in [resume_path, resume_path + ".pdf"]:
+                fp = str(RESUME_DIR / candidate)
+                if Path(fp).exists():
+                    full_path = fp
+                    break
+            else:
+                self._out(f"  -> Resume not found: {resume_path}")
+                return False
+
         if not Path(full_path).exists():
             self._out(f"  -> Resume not found: {resume_path}")
             return False
@@ -378,6 +648,7 @@ class BrowserAssistant:
             ("location", profile.get("location", "")),
             ("linkedin", profile.get("linkedin", "")),
             ("github", profile.get("github", "")),
+            ("website", profile.get("website", "") or profile.get("portfolio", "")),
             ("current_company", profile.get("current_company", "")),
             ("current_role", profile.get("current_role", "")),
             ("years_experience", str(profile.get("years_experience", ""))),
@@ -387,6 +658,18 @@ class BrowserAssistant:
             ("current_ctc", str(profile.get("current_ctc", ""))),
             ("expected_ctc", str(profile.get("expected_ctc", ""))),
             ("notice_period", profile.get("notice_period", "")),
+            ("country", profile.get("country", "")),
+            ("state", profile.get("state", "")),
+            ("city", profile.get("city", "")),
+            ("visa_sponsorship", profile.get("requires_sponsorship", profile.get("authorized_to_work", ""))),
+            ("employment_restrictions", profile.get("employment_restrictions", "")),
+            ("accommodations", profile.get("accommodations", "")),
+            ("gender", profile.get("gender", "")),
+            ("veteran_status", profile.get("veteran_status", "")),
+            ("disability_status", profile.get("disability_status", "")),
+            ("pronouns", profile.get("pronouns", "")),
+            ("ethnicity", profile.get("ethnicity", "")),
+            ("previously_employed", profile.get("previously_employed_by", "")),
         ]
 
         for field_type, value in FIELDS:

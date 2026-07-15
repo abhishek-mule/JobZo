@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from database.models import Application, Job, Task
 from database.connection import get_session
+from tracker.events import record_event, APPLICATION_CREATED, STATUS_CHANGED, APPLICATION_SKIPPED
 
 logger = logging.getLogger("jobzo.tracker")
 
@@ -69,6 +70,8 @@ def transition_status(app_id: str, new_status: str) -> bool:
             return False
 
         now = datetime.utcnow()
+        prev_status = app.status
+        app._prev_status = prev_status
         app.status = new_status
         app.last_activity_at = now
 
@@ -85,6 +88,26 @@ def transition_status(app_id: str, new_status: str) -> bool:
                 app.first_response_at = now
 
         session.commit()
+
+        from tracker.events import record_event, STATUS_CHANGED, APPLICATION_SUBMITTED, OFFER_RECEIVED, REJECTED, INTERVIEW_SCHEDULED
+        ev_type = STATUS_CHANGED
+        if new_status == "submitted":
+            ev_type = APPLICATION_SUBMITTED
+        elif new_status == "interview":
+            ev_type = INTERVIEW_SCHEDULED
+        elif new_status == "offer":
+            ev_type = OFFER_RECEIVED
+        elif new_status == "rejected":
+            ev_type = REJECTED
+        record_event(ev_type, "application", app.id, actor="user", metadata={
+            "from_status": getattr(app, '_prev_status', None),
+            "to_status": new_status,
+            "company": app.job.company if app.job else "",
+        })
+
+        from tracker.outcomes import auto_record_from_status
+        auto_record_from_status(app.id)
+
         logger.info("Application %s -> %s", app_id, new_status)
         return True
     except Exception as e:

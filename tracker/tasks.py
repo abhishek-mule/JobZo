@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from database.models import Task
 from database.connection import get_session
+from tracker.events import record_event, TASK_COMPLETED, TASK_CREATED
 
 logger = logging.getLogger("jobzo.tasks")
 
@@ -53,6 +54,9 @@ def create_task(
         session.add(task)
         session.commit()
         logger.info("Task created: %s", title)
+        record_event(TASK_CREATED, "task", task.id, actor="system", metadata={
+            "type": type, "title": title, "application_id": application_id,
+        })
         return task
     except Exception as e:
         session.rollback()
@@ -76,6 +80,9 @@ def complete_task(task_id: str) -> bool:
         task.done = True
         session.commit()
         logger.info("Task completed: %s", task_id)
+        record_event(TASK_COMPLETED, "task", task.id, actor="user", metadata={
+            "type": task.type, "title": task.title,
+        })
         return True
     except Exception as e:
         session.rollback()
