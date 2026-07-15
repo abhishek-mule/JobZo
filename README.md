@@ -1,244 +1,238 @@
-<div align="center">
+# JobZo — Career Optimization Engine
 
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)]()
+[![Tests](https://img.shields.io/badge/Tests-126%20passed-brightgreen)]()
+[![Benchmarks](https://img.shields.io/badge/Benchmarks-11%2F11%20passing-brightgreen)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
-<img width="1407" height="768" alt="Gemini_Generated_Image_brclqgbrclqgbrcl" src="https://github.com/user-attachments/assets/612db4f7-8c33-4046-93f5-68f082f32f5f" />
+Modern job search tools optimize for **applications submitted**.
+JobZo optimizes for **career outcomes**.
 
-
-# 🚀 JobZo - AI Career Accelerator
-
-*Your Personal AI-Powered Job Search Companion*
-
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)](https://github.com/abhishek-mule/JobZo)
-
-</div>
+Every recommendation, task, and application is chosen to maximize the expected
+long-term value of a developer's career — not simply the number of applications
+sent.
 
 ---
 
-## 📋 Table of Contents
+## The problem
 
-- [About](#about)
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Getting Started](#getting-started)
-- [Contributing](#contributing)
-- [License](#license)
+Most platforms answer:
 
----
+> *"What jobs exist?"*
 
-## 🎯 About
+JobZo answers:
 
-**JobZo** is an intelligent AI Career Accelerator designed to revolutionize your job search experience. Leveraging cutting-edge artificial intelligence and machine learning, JobZo helps you find the perfect job opportunities, optimize your applications, and accelerate your career growth.
+> *"Given your skills, goals, history, and limited time today, what is the
+> single highest-impact action you should take next?"*
 
-Whether you're a fresh graduate, career changer, or seasoned professional, JobZo is your personal AI-powered companion on your journey to career success! 🌟
+That means the system does not just find jobs. It estimates interview probability
+from a graph-aware skill match, scores opportunities across six dimensions,
+snapshots every decision immutably, generates tasks from providers, schedules
+them within a daily time budget using a dependency-respecting planner, and
+executes them through a lifecycle-aware mission engine.
 
----
-
-## ✨ Features
-
-- 🤖 **AI-Powered Job Matching** - Intelligent algorithms match your skills with ideal job opportunities
-- 📊 **Resume Optimization** - Get AI suggestions to improve your resume for better visibility
-- 💼 **Career Analytics** - Analyze job market trends and salary insights
-- 🎓 **Skill Gap Analysis** - Identify missing skills and get learning recommendations
-- 📧 **Application Tracking** - Track and manage all your job applications
-- 🔔 **Smart Job Alerts** - Get personalized job recommendations delivered to you
-- 💡 **Interview Preparation** - AI-powered interview coaching and practice questions
-- 🌐 **Multi-Platform Support** - Access JobZo across different platforms
+The output is not a list of jobs. It is a **mission**.
 
 ---
 
-## 🛠️ Installation
+## Architecture
 
-### Prerequisites
-- Python 3.8 or higher
-- pip (Python package manager)
+```text
+                           ┌──────────────────┐
+                           │  Company Registry │
+                           │    Skill Graph    │
+                           │  DecisionSnapshot │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │     Retriever    │
+                           │     Ranker       │
+                           │    Normalizer    │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │ OpportunitySnap. │
+                           └────────┬─────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+              ┌─────▼─────┐  ┌──────▼──────┐  ┌─────▼─────┐
+              │   Apply   │  │  Follow-up  │  │  Future   │
+              │  Provider │  │  Provider   │  │ Providers │
+              └─────┬─────┘  └──────┬──────┘  └─────┬─────┘
+                    │               │               │
+                    └───────────────┼───────────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │  TaskProviderReg. │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │  GreedyPlanner   │
+                           │ (depth + density │
+                           │  + budget pack)  │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │     Mission      │
+                           │   (accepted +    │
+                           │   rejected +     │
+                           │   provenance)    │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │    Execution     │
+                           │  (lifecycle mgr) │
+                           └────────┬─────────┘
+                                    │
+                           ┌────────▼─────────┐
+                           │   Events /       │
+                           │   Benchmarks /   │
+                           │   Simulation     │
+                           └──────────────────┘
+```
 
-### Steps
+Layers are independent. Each has a distinct responsibility, owns its own tests,
+and can be replaced without touching the others.
 
-1. **Clone the repository:**
+---
+
+## Design Principles
+
+1. **Optimize outcomes, not activity.**  
+   Tasks are ranked by expected value per minute, not by convenience.
+
+2. **Every recommendation must be explainable.**  
+   `TaskNode.why()` returns a human-readable justification for every task.
+
+3. **Decisions are versioned and reproducible.**  
+   `DecisionSnapshot` records the full retriever/ranker/registry versions
+   so any historical decision can be audited.
+
+4. **Execution is more valuable than discovery.**  
+   The planner packs into a time budget; tasks that don't fit are rejected
+   with a reason, not silently dropped.
+
+5. **Benchmarks are required before heuristics change.**  
+   Retrieval accuracy, ranker accuracy, and planner efficiency are measured
+   before and after every change.
+
+6. **User time is the most constrained resource.**  
+   A mission tells you what to do, what to skip, and why.
+
+---
+
+## Current status
+
+**Today:**
+
+- Rule- and graph-based decision engine.
+- Benchmark-driven retrieval and ranking (11 suites, 126 tests).
+- Mission planning over expected value with dependency resolution.
+- Immutable, versioned decision snapshots.
+- Simulation framework for planner comparison.
+
+**Next:**
+
+- Outcome-driven probability estimation from real application results.
+- Adaptive planning that learns from user feedback.
+- Additional task providers (follow-up, interview prep, networking, learning).
+- Career graph for long-term trajectory optimization.
+
+---
+
+## Roadmap
+
+```text
+Phase 1 — Intelligence
+    ✓ Retrieval engine (skill graph, normalization, eligibility)
+    ✓ Ranking engine (interview probability, confidence, risk)
+    ✓ Decision snapshots (versioned, immutable, reproducible)
+
+Phase 2 — Planning
+    ✓ Mission engine (TaskNode, lifecycle, dependencies)
+    ✓ Task provider registry (pluggable, priority-ordered)
+    ✓ Greedy planner (depth-respecting value density ranking)
+
+Phase 3 — Learning
+    □ Outcome engine (calibrate probabilities from real outcomes)
+    □ Probability calibration (observed → predicted)
+    □ Adaptive planning (planner adjusts from user behavior)
+
+Phase 4 — Career Graph
+    □ Long-term career trajectory optimization
+    □ Skill investment modeling (learn X → unlock Y)
+    □ Community outcome analytics (anonymized, aggregated)
+```
+
+---
+
+## Stack
+
+- **Language:** Python 3.12+
+- **Storage:** SQLite via SQLAlchemy 2.0 (local-first, zero-infrastructure)
+- **Parsing:** Reusable Playwright scripts + ATS-specific extractors (Ashby,
+  BambooHR, Greenhouse, Lever, Personio, SmartRecruiters, Teamtailor, Workday)
+- **Graph:** Weighted DAG for skill relationships (parent, complement)
+- **Decision Engine:** Composite score vector (6-dim), tier assignment,
+  interview probability estimation
+- **Planning:** Dependency-graph-aware greedy scheduler with budget packing
+- **Testing:** 126 tests, 11 benchmark suites, simulation framework
+
+---
+
+## Quick start
+
 ```bash
 git clone https://github.com/abhishek-mule/JobZo.git
 cd JobZo
-```
-
-2. **Create a virtual environment (recommended):**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies:**
-```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python3 -m mission.engine    # start the mission loop
 ```
-
-4. **Configuration:**
-```bash
-# Create a config file (if needed)
-cp config.example.py config.py
-# Edit config.py with your settings
-```
-
----
-
-## 🚀 Usage
-
-### Basic Usage
-
-```python
-from jobzo import JobZo
-
-# Initialize JobZo
-jobzo = JobZo(api_key="your_api_key_here")
-
-# Find jobs matching your profile
-jobs = jobzo.find_jobs(
-    skills=["Python", "Machine Learning"],
-    experience_level="mid",
-    location="remote"
-)
-
-# Get resume suggestions
-suggestions = jobzo.optimize_resume("path/to/resume.pdf")
-
-# Analyze skill gaps
-gaps = jobzo.analyze_skill_gaps()
-```
-
-### Command Line Interface
 
 ```bash
-# Start JobZo
-python -m jobzo
+# Run the full test suite (126 tests)
+python3 -m pytest tests/
 
-# Find jobs
-jobzo find-jobs --skills "Python,AI" --location "remote"
+# Run benchmarks (11 suites)
+python3 -c "from benchmark.runner import run_all, print_results; print_results(run_all())"
 
-# Optimize resume
-jobzo optimize-resume --file resume.pdf
-
-# Interview prep
-jobzo prep-interview --role "Data Scientist"
+# Run a planner simulation (30 days)
+python3 -c "
+from domain.planner import GreedyPlanner
+from domain.simulation import simulate, generate_task_pool, SimulationConfig
+result = simulate(GreedyPlanner(), SimulationConfig(days=30))
+print(result.summary())
+"
 ```
 
 ---
 
-## 📖 Getting Started
+## Project structure
 
-### Quick Start Guide
-
-1. **Set Up Your Profile:**
-   - Add your skills, experience, and career goals
-   - Upload your resume
-   - Set job preferences
-
-2. **Explore Job Opportunities:**
-   - Browse AI-matched job recommendations
-   - Filter by location, salary, and experience level
-   - Save favorite opportunities
-
-3. **Optimize Your Application:**
-   - Get AI-powered resume feedback
-   - Tailor cover letters for specific positions
-   - Track your application status
-
-4. **Prepare for Interviews:**
-   - Practice with AI-generated interview questions
-   - Get coaching on common interview scenarios
-   - Review company insights and interview tips
-
-### Example Workflow
-
-```python
-# Complete workflow example
-from jobzo import JobZo, ResumeAnalyzer, InterviewCoach
-
-jobzo = JobZo()
-
-# Step 1: Analyze your current resume
-analyzer = ResumeAnalyzer()
-feedback = analyzer.analyze("my_resume.pdf")
-print(feedback)
-
-# Step 2: Find matching jobs
-jobs = jobzo.find_jobs(
-    skills=["Python", "Django"],
-    min_salary=50000,
-    location="San Francisco"
-)
-
-# Step 3: Prepare for interviews
-coach = InterviewCoach()
-interview_tips = coach.get_tips("Software Engineer")
+```
+├── ai/              Retriever, ranker, normalizer, skill graph, score vector
+├── ats/             ATS-specific parsers (7 platforms)
+├── benchmark/       Retrieval, ranker, and score accuracy benchmarks
+├── domain/          Mission planner, task providers, execution engine
+│   ├── models.py    TaskNode, Mission, ProviderResult, OpportunitySnapshot
+│   ├── providers.py TaskProvider protocol + ApplyTaskProvider
+│   ├── registry.py  TaskProviderRegistry (pluggable provider discovery)
+│   ├── planner.py   GreedyPlanner (dependency depth + value density)
+│   ├── execution.py MissionExecution (lifecycle manager)
+│   └── simulation.py  Monte Carlo planner evaluation
+├── database/        SQLAlchemy models + connection management
+├── mission/         Interactive mission engine (inbox, review, execution)
+├── resumes/         Resume registry, optimizer, JD analyzer, generator
+├── services/        Eligibility engine, company registry, config, caching
+├── skills/          Skill knowledge base (YAML dictionary with aliases)
+├── tracker/         Decision intelligence, events, outreach, outcomes
+└── tests/           126 tests across all layers
 ```
 
 ---
 
-## 🤝 Contributing
+## License
 
-We'd love your contributions! Please follow these steps:
-
-1. **Fork the repository**
-2. **Create a feature branch:**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Make your changes and commit:**
-   ```bash
-   git commit -m "Add some amazing feature"
-   ```
-4. **Push to the branch:**
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. **Open a Pull Request**
-
-### Development Setup
-
-```bash
-# Install development dependencies
-pip install -r requirements-dev.txt
-
-# Run tests
-pytest
-
-# Format code
-black .
-
-# Lint code
-flake8 .
-```
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📞 Support & Contact
-
-- 📧 **Email:** [Open an issue on GitHub](https://github.com/abhishek-mule/JobZo/issues)
-- 🐛 **Bug Reports:** [Create an issue](https://github.com/abhishek-mule/JobZo/issues/new)
-- 💬 **Discussions:** [Join our discussions](https://github.com/abhishek-mule/JobZo/discussions)
-
----
-
-## 🙏 Acknowledgments
-
-- Thanks to all contributors who have helped with code, documentation, and feedback
-- Inspired by the need to revolutionize career development
-- Built with ❤️ for job seekers everywhere
-
----
-
-<div align="center">
-
-### ⭐ If you find JobZo helpful, please consider giving it a star!
-
-**Happy Job Hunting! 🚀**
-
-</div>
+MIT. See [LICENSE](LICENSE).
