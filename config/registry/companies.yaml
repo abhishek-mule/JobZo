@@ -1,0 +1,1050 @@
+# ── Company Registry ──────────────────────────────────────────────────────────
+# This is the source of truth for every company JobZo knows about.
+#
+# Fields:
+#   primary_category     – Exactly one from categories.yaml
+#   secondary_categories – Zero or more from categories.yaml
+#   stage                – Startup | Growth | Enterprise
+#   offices              – List of location names matching locations.yaml
+#   hiring_regions       – List of region names (India, Remote, US, Europe, Global)
+#   ats                  – List of ATS types matching ats.yaml
+#   careers_url          – Human-friendly careers page URL
+#   job_listing_url      – Machine-parsed job listing URL (used by CompanyPagesProvider)
+#   fresher_friendly     – bool: does this company hire freshers?
+#   internship           – bool: does this company offer internships?
+#   remote_policy        – Remote | Hybrid | On-site
+#   backend_stack        – List of technologies from technologies.yaml
+#   hiring_patterns      – Relative hiring demand by role type (High/Medium/Low)
+#   interview            – Estimated difficulty (1-10), OA flag, system design flag
+#   salary               – Salary bands in LPA (min/max for fresher, intern)
+#   priority             – High | Medium | Low (for search ranking)
+#   tags                 – Free-form tags for discovery/filtering
+#   confidence           – How confident we are in this company's data (0-1)
+
+browserstack:
+  primary_category: SaaS
+  secondary_categories:
+    - Product
+    - Testing
+  stage: Growth
+  offices:
+    - Mumbai
+    - Bangalore
+  hiring_regions:
+    - India
+    - Remote
+  ats:
+    - smartrecruiters
+  careers_url: https://www.browserstack.com/careers
+  job_listing_url: https://browserstack.hire.trakstar.com/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Spring Boot
+    - Redis
+    - Kafka
+    - Kubernetes
+    - Docker
+    - MySQL
+    - RabbitMQ
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 7
+    oa: true
+    system_design: false
+  salary:
+    fresher:
+      min: 18
+      max: 28
+    intern:
+      min: 3
+      max: 5
+  priority: High
+  confidence: 0.95
+  tags:
+    - devtools
+    - testing
+    - java
+
+razorpay:
+  primary_category: FinTech
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - Bangalore
+  hiring_regions:
+    - India
+    - Remote
+  ats:
+    - greenhouse
+  careers_url: https://razorpay.com/careers/
+  job_listing_url: https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Spring Boot
+    - Redis
+    - Kafka
+    - MySQL
+    - Docker
+    - Kubernetes
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 20
+      max: 35
+    intern:
+      min: 3
+      max: 6
+  priority: High
+  confidence: 0.95
+  tags:
+    - fintech
+    - payments
+    - java
+
+postman:
+  primary_category: DevTools
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - Bangalore
+    - Pune
+    - San Francisco
+  hiring_regions:
+    - India
+    - Remote
+    - US
+  ats:
+    - greenhouse
+  careers_url: https://www.postman.com/company/careers/
+  job_listing_url: https://job-boards.greenhouse.io/postman
+  fresher_friendly: true
+  internship: true
+  remote_policy: Remote
+  backend_stack:
+    - Node
+    - TypeScript
+    - PostgreSQL
+    - Redis
+    - Docker
+    - Kubernetes
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Low
+  interview:
+    difficulty: 7
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 20
+      max: 32
+    intern:
+      min: 3
+      max: 5
+  priority: High
+  confidence: 0.95
+  tags:
+    - devtools
+    - api
+    - typescript
+
+stripe:
+  primary_category: FinTech
+  secondary_categories:
+    - Product
+    - SaaS
+  stage: Enterprise
+  offices:
+    - San Francisco
+    - New York
+    - Seattle
+    - Dublin
+    - Singapore
+  hiring_regions:
+    - US
+    - Europe
+    - Remote
+  ats:
+    - generic
+  careers_url: https://stripe.com/jobs
+  job_listing_url: https://stripe.com/jobs/search
+  fresher_friendly: false
+  internship: true
+  remote_policy: Remote
+  backend_stack:
+    - Ruby
+    - Java
+    - Scala
+    - PostgreSQL
+    - Kafka
+    - Redis
+    - Docker
+    - Kubernetes
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 9
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 30
+      max: 50
+    intern:
+      min: 6
+      max: 10
+  priority: High
+  confidence: 0.75
+  tags:
+    - payments
+    - fintech
+    - remote
+
+atlassian:
+  primary_category: Product
+  secondary_categories:
+    - SaaS
+  stage: Enterprise
+  offices:
+    - Bangalore
+    - Sydney
+    - San Francisco
+    - New York
+    - London
+  hiring_regions:
+    - India
+    - US
+    - Europe
+    - Remote
+  ats:
+    - generic
+  careers_url: https://www.atlassian.com/company/careers
+  job_listing_url: https://www.atlassian.com/company/careers/all-jobs
+  fresher_friendly: true
+  internship: true
+  remote_policy: Remote
+  backend_stack:
+    - Java
+    - Python
+    - Spring Boot
+    - PostgreSQL
+    - Redis
+    - Docker
+    - Kubernetes
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 22
+      max: 38
+    intern:
+      min: 4
+      max: 7
+  priority: High
+  confidence: 0.70
+  tags:
+    - product
+    - saas
+    - collaboration
+
+gitlab:
+  primary_category: DevTools
+  secondary_categories:
+    - SaaS
+  stage: Enterprise
+  offices:
+    - Remote
+  hiring_regions:
+    - Remote
+    - India
+    - US
+    - Europe
+  ats:
+    - greenhouse
+  careers_url: https://about.gitlab.com/jobs/
+  job_listing_url: https://job-boards.greenhouse.io/gitlab
+  fresher_friendly: false
+  internship: false
+  remote_policy: Remote
+  backend_stack:
+    - Ruby
+    - Go
+    - PostgreSQL
+    - Redis
+    - Kubernetes
+    - GCP
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 8
+    oa: false
+    system_design: true
+  salary:
+    fresher:
+      min: 25
+      max: 45
+  priority: High
+  confidence: 0.95
+  tags:
+    - devtools
+    - remote-first
+    - devops
+
+vercel:
+  primary_category: DevTools
+  secondary_categories:
+    - SaaS
+  stage: Growth
+  offices:
+    - San Francisco
+    - New York
+    - Remote
+  hiring_regions:
+    - Remote
+    - US
+    - Europe
+  ats:
+    - ashby
+  careers_url: https://vercel.com/careers
+  job_listing_url: https://jobs.ashbyhq.com/vercel
+  fresher_friendly: false
+  internship: false
+  remote_policy: Remote
+  backend_stack:
+    - TypeScript
+    - Node
+    - Go
+    - React
+    - Next.js
+    - PostgreSQL
+    - Redis
+    - GCP
+  hiring_patterns:
+    backend: High
+    frontend: High
+    devops: Medium
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 28
+      max: 45
+  priority: High
+  confidence: 0.90
+  tags:
+    - devtools
+    - frontend
+    - cloud
+
+anthropic:
+  primary_category: AI
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - San Francisco
+    - New York
+    - Remote
+  hiring_regions:
+    - US
+    - Remote
+  ats:
+    - ashby
+  careers_url: https://www.anthropic.com/careers
+  job_listing_url: https://jobs.ashbyhq.com/anthropic
+  fresher_friendly: false
+  internship: false
+  remote_policy: Remote
+  backend_stack:
+    - Python
+    - TypeScript
+    - Rust
+    - PyTorch
+    - Kubernetes
+    - AWS
+    - GCP
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+    ai_ml: High
+  interview:
+    difficulty: 9
+    oa: false
+    system_design: true
+  salary:
+    fresher:
+      min: 35
+      max: 55
+  priority: High
+  confidence: 0.90
+  tags:
+    - ai
+    - llm
+    - research
+
+openai:
+  primary_category: AI
+  secondary_categories:
+    - Product
+  stage: Enterprise
+  offices:
+    - San Francisco
+    - New York
+    - London
+    - Tokyo
+  hiring_regions:
+    - US
+    - Europe
+  ats:
+    - ashby
+  careers_url: https://openai.com/careers/
+  job_listing_url: https://jobs.ashbyhq.com/openai
+  fresher_friendly: false
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Python
+    - Go
+    - Rust
+    - PyTorch
+    - Kubernetes
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+    ai_ml: High
+  interview:
+    difficulty: 10
+    oa: false
+    system_design: true
+  salary:
+    fresher:
+      min: 40
+      max: 60
+    intern:
+      min: 8
+      max: 12
+  priority: High
+  confidence: 0.90
+  tags:
+    - ai
+    - llm
+    - research
+
+notion:
+  primary_category: SaaS
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - San Francisco
+    - New York
+    - Remote
+  hiring_regions:
+    - US
+    - Remote
+  ats:
+    - lever
+  careers_url: https://www.notion.so/careers
+  job_listing_url: https://jobs.lever.co/notion
+  fresher_friendly: false
+  internship: true
+  remote_policy: Remote
+  backend_stack:
+    - TypeScript
+    - Node
+    - React
+    - PostgreSQL
+    - Redis
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: High
+    devops: Medium
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 30
+      max: 48
+    intern:
+      min: 6
+      max: 9
+  priority: High
+  confidence: 0.95
+  tags:
+    - productivity
+    - collaboration
+    - typescript
+
+cred:
+  primary_category: FinTech
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - Bangalore
+  hiring_regions:
+    - India
+  ats:
+    - lever
+  careers_url: https://cred.club/careers
+  job_listing_url: https://jobs.lever.co/cred
+  fresher_friendly: true
+  internship: false
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Spring Boot
+    - Redis
+    - Kafka
+    - PostgreSQL
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 7
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 20
+      max: 35
+  priority: High
+  confidence: 0.95
+  tags:
+    - fintech
+    - payments
+    - java
+
+jpmorgan:
+  primary_category: GCC
+  secondary_categories:
+    - FinTech
+  stage: Enterprise
+  offices:
+    - Mumbai
+    - Bangalore
+    - Hyderabad
+    - New York
+    - London
+    - Singapore
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - workday
+  careers_url: https://jpmc.fa.oraclecloud.com/
+  job_listing_url: https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Spring Boot
+    - Python
+    - PostgreSQL
+    - Kafka
+    - Redis
+    - Docker
+    - Kubernetes
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Low
+  interview:
+    difficulty: 7
+    oa: true
+    system_design: false
+  salary:
+    fresher:
+      min: 16
+      max: 30
+    intern:
+      min: 4
+      max: 7
+  priority: High
+  confidence: 0.70
+  tags:
+    - banking
+    - finance
+    - java
+
+goldmansachs:
+  primary_category: GCC
+  secondary_categories:
+    - FinTech
+  stage: Enterprise
+  offices:
+    - Bangalore
+    - Hyderabad
+    - Mumbai
+    - New York
+    - London
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - generic
+  careers_url: https://www.goldmansachs.com/careers/
+  job_listing_url: https://www.goldmansachs.com/careers/join-us/jobs.html
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Python
+    - C++
+    - Spring Boot
+    - Kafka
+    - PostgreSQL
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Low
+    devops: Low
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 16
+      max: 28
+    intern:
+      min: 4
+      max: 7
+  priority: High
+  confidence: 0.65
+  tags:
+    - banking
+    - finance
+    - java
+
+microsoft:
+  primary_category: MNC
+  secondary_categories:
+    - Product
+    - AI
+    - Cloud
+  stage: Enterprise
+  offices:
+    - Bangalore
+    - Hyderabad
+    - Noida
+    - Pune
+    - Redmond
+    - San Francisco
+    - New York
+    - London
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - generic
+  careers_url: https://careers.microsoft.com/
+  job_listing_url: https://careers.microsoft.com/us/en/search-results
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Python
+    - C#
+    - TypeScript
+    - Azure
+    - Kubernetes
+    - Docker
+    - PostgreSQL
+    - Redis
+  hiring_patterns:
+    backend: High
+    frontend: High
+    devops: High
+    ai_ml: High
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 22
+      max: 40
+    intern:
+      min: 5
+      max: 9
+  priority: High
+  confidence: 0.65
+  tags:
+    - cloud
+    - enterprise
+    - ai
+
+amazon:
+  primary_category: MNC
+  secondary_categories:
+    - Product
+    - Cloud
+    - E-commerce
+  stage: Enterprise
+  offices:
+    - Bangalore
+    - Hyderabad
+    - Chennai
+    - Delhi
+    - Mumbai
+    - Seattle
+    - San Francisco
+    - New York
+    - London
+    - Dublin
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - amazon
+  careers_url: https://www.amazon.jobs/
+  job_listing_url: https://www.amazon.jobs/en-gb/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Python
+    - C++
+    - TypeScript
+    - AWS
+    - Docker
+    - Kubernetes
+    - DynamoDB
+    - Kafka
+    - Redis
+  hiring_patterns:
+    backend: High
+    frontend: High
+    devops: High
+  interview:
+    difficulty: 9
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 20
+      max: 45
+    intern:
+      min: 5
+      max: 10
+  priority: High
+  confidence: 0.85
+  tags:
+    - cloud
+    - ecommerce
+    - aws
+
+tcs:
+  primary_category: Service
+  secondary_categories:
+    - MNC
+  stage: Enterprise
+  offices:
+    - Mumbai
+    - Bangalore
+    - Pune
+    - Hyderabad
+    - Chennai
+    - Kolkata
+    - Delhi
+    - Noida
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - icims
+  careers_url: https://www.tcs.com/careers
+  job_listing_url: https://ibaimm.tcs.com/
+  fresher_friendly: true
+  internship: true
+  remote_policy: On-site
+  backend_stack:
+    - Java
+    - Python
+    - Spring Boot
+    - SQL
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Low
+  interview:
+    difficulty: 5
+    oa: false
+    system_design: false
+  salary:
+    fresher:
+      min: 3
+      max: 7
+    intern:
+      min: 1
+      max: 2.5
+  priority: Medium
+  confidence: 0.55
+  tags:
+    - services
+    - consulting
+    - java
+
+accenture:
+  primary_category: Service
+  secondary_categories:
+    - MNC
+  stage: Enterprise
+  offices:
+    - Bangalore
+    - Mumbai
+    - Pune
+    - Hyderabad
+    - Chennai
+    - Delhi
+    - Gurgaon
+    - New York
+    - London
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - workday
+  careers_url: https://www.accenture.com/in-en/careers
+  job_listing_url: https://accenture.wd3.myworkdayjobs.com/AccentureCareers
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Python
+    - Spring Boot
+    - SQL
+    - AWS
+    - Azure
+    - Docker
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 5
+    oa: false
+    system_design: false
+  salary:
+    fresher:
+      min: 4
+      max: 9
+    intern:
+      min: 1.5
+      max: 3
+  priority: Medium
+  confidence: 0.70
+  tags:
+    - services
+    - consulting
+    - java
+
+zoho:
+  primary_category: Product
+  secondary_categories:
+    - SaaS
+  stage: Growth
+  offices:
+    - Chennai
+    - Bangalore
+    - Hyderabad
+    - Austin
+    - Singapore
+  hiring_regions:
+    - India
+    - US
+  ats:
+    - generic
+  careers_url: https://www.zohocorp.com/careers
+  job_listing_url: https://careers.zohocorp.com/
+  fresher_friendly: true
+  internship: true
+  remote_policy: On-site
+  backend_stack:
+    - Java
+    - JavaScript
+    - PostgreSQL
+    - Redis
+    - Docker
+    - Kubernetes
+  hiring_patterns:
+    backend: High
+    frontend: High
+    devops: Medium
+  interview:
+    difficulty: 6
+    oa: true
+    system_design: false
+  salary:
+    fresher:
+      min: 6
+      max: 15
+    intern:
+      min: 2
+      max: 4
+  priority: Medium
+  confidence: 0.55
+  tags:
+    - product
+    - saas
+    - java
+
+freshworks:
+  primary_category: SaaS
+  secondary_categories:
+    - Product
+  stage: Growth
+  offices:
+    - Chennai
+    - Bangalore
+    - Mumbai
+    - San Francisco
+    - London
+  hiring_regions:
+    - India
+    - US
+    - Europe
+  ats:
+    - smartrecruiters
+  careers_url: https://www.freshworks.com/company/careers/
+  job_listing_url: https://careers.smartrecruiters.com/Freshworks
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  backend_stack:
+    - Java
+    - Python
+    - Spring Boot
+    - PostgreSQL
+    - Redis
+    - Kafka
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Medium
+  interview:
+    difficulty: 6
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 12
+      max: 22
+    intern:
+      min: 2.5
+      max: 4.5
+  priority: High
+  confidence: 0.85
+  tags:
+    - saas
+    - customer-support
+    - java
+
+linear:
+  primary_category: DevTools
+  secondary_categories:
+    - Startup
+    - SaaS
+  stage: Growth
+  offices:
+    - San Francisco
+    - Remote
+  hiring_regions:
+    - Remote
+    - US
+    - Europe
+  ats:
+    - ashby
+  careers_url: https://linear.app/careers
+  job_listing_url: https://jobs.ashbyhq.com/linear
+  fresher_friendly: false
+  internship: false
+  remote_policy: Remote
+  backend_stack:
+    - TypeScript
+    - Node
+    - React
+    - PostgreSQL
+    - Redis
+    - Docker
+    - AWS
+  hiring_patterns:
+    backend: High
+    frontend: Medium
+    devops: Low
+  interview:
+    difficulty: 8
+    oa: true
+    system_design: true
+  salary:
+    fresher:
+      min: 30
+      max: 50
+  priority: High
+  confidence: 0.90
+  tags:
+    - devtools
+    - productivity
+    - typescript

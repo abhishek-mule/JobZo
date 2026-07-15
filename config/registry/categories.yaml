@@ -1,0 +1,50 @@
+# Company categories
+# primary_category: exactly one per company
+# secondary_categories: zero or more per company
+
+categories:
+  Product:
+    label: Product Company
+    description: Companies building their own software product
+  SaaS:
+    label: SaaS Company
+    description: Software as a Service provider
+  GCC:
+    label: Global Capability Center
+    description: Captive development centers of global corporations
+  MNC:
+    label: Multinational Corporation
+    description: Large global technology corporations
+  Startup:
+    label: Startup
+    description: Early to growth-stage companies (<500 employees)
+  Service:
+    label: Service Company
+    description: IT services and consulting firms
+  AI:
+    label: AI Company
+    description: Artificial intelligence and machine learning focused
+  FinTech:
+    label: FinTech
+    description: Financial technology companies
+  HealthTech:
+    label: HealthTech
+    description: Healthcare technology companies
+  DevTools:
+    label: Developer Tools
+    description: Tools and infrastructure for developers
+  E-commerce:
+    label: E-commerce
+    description: E-commerce and retail technology
+  Testing:
+    label: Testing
+    description: Software testing and QA platforms
+  Security:
+    label: Security
+    description: Cybersecurity companies
+  EdTech:
+    label: EdTech
+    description: Education technology companies
+  Cloud:
+    label: Cloud Infrastructure
+    description: Cloud computing and infrastructure companies

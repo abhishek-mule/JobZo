@@ -1,0 +1,34 @@
+# Known office locations
+# country: null means fully remote / no single HQ
+
+locations:
+  Mumbai:         { country: India,  region: west,    type: metro }
+  Bangalore:      { country: India,  region: south,   type: metro }
+  Pune:           { country: India,  region: west,    type: metro }
+  Hyderabad:      { country: India,  region: south,   type: metro }
+  Chennai:        { country: India,  region: south,   type: metro }
+  Delhi:          { country: India,  region: north,   type: metro }
+  Gurgaon:        { country: India,  region: north,   type: metro }
+  Noida:          { country: India,  region: north,   type: metro }
+  Kolkata:        { country: India,  region: east,    type: metro }
+  Nagpur:         { country: India,  region: central, type: tier2 }
+  Indore:         { country: India,  region: central, type: tier2 }
+  Kochi:          { country: India,  region: south,   type: tier2 }
+  Ahmedabad:      { country: India,  region: west,    type: metro }
+  Jaipur:         { country: India,  region: north,   type: metro }
+  San Francisco:  { country: US,     region: west,    type: tech_hub }
+  New York:       { country: US,     region: east,    type: metro }
+  Seattle:        { country: US,     region: west,    type: tech_hub }
+  Austin:         { country: US,     region: central, type: tech_hub }
+  London:         { country: UK,     region: europe,  type: metro }
+  Berlin:         { country: Germany, region: europe, type: tech_hub }
+  Amsterdam:      { country: Netherlands, region: europe, type: tech_hub }
+  Dublin:         { country: Ireland, region: europe, type: tech_hub }
+  Singapore:      { country: Singapore, region: asia,  type: tech_hub }
+  Tokyo:          { country: Japan,  region: asia,    type: metro }
+  Sydney:         { country: Australia, region: oceania, type: metro }
+  Remote:         { country: null,   region: null,    type: remote }
+  Hybrid:         { country: null,   region: null,    type: hybrid }
+  Redmond:        { country: US,     region: west,    type: tech_hub }
+  Sunnyvale:      { country: US,     region: west,    type: tech_hub }
+  Mountain View:  { country: US,     region: west,    type: tech_hub }

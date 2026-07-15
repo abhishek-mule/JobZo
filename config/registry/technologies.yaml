@@ -1,0 +1,120 @@
+# Known technologies / skills
+# weight: importance for scoring (higher = more valuable)
+# category: for grouping in analysis
+
+technologies:
+  # Languages
+  Java:        { category: language,    weight: 10 }
+  Python:      { category: language,    weight: 8 }
+  JavaScript:  { category: language,    weight: 6 }
+  TypeScript:  { category: language,    weight: 8 }
+  Go:          { category: language,    weight: 6 }
+  Rust:        { category: language,    weight: 5 }
+  "C#":        { category: language,    weight: 6 }
+  "C++":       { category: language,    weight: 5 }
+  Kotlin:      { category: language,    weight: 5 }
+  Swift:       { category: language,    weight: 4 }
+  Ruby:        { category: language,    weight: 5 }
+  Scala:       { category: language,    weight: 4 }
+
+  # Backend frameworks
+  Spring:      { category: framework,   weight: 10 }
+  "Spring Boot": { category: framework, weight: 10 }
+  Django:      { category: framework,   weight: 6 }
+  Flask:       { category: framework,   weight: 5 }
+  FastAPI:     { category: framework,   weight: 5 }
+  Express:     { category: framework,   weight: 5 }
+  NestJS:      { category: framework,   weight: 5 }
+  Rails:       { category: framework,   weight: 4 }
+  ASP.NET:     { category: framework,   weight: 5 }
+
+  # Frontend
+  React:       { category: frontend,    weight: 8 }
+  Angular:     { category: frontend,    weight: 5 }
+  Vue:         { category: frontend,    weight: 5 }
+  Next.js:     { category: frontend,    weight: 5 }
+  HTML:        { category: frontend,    weight: 4 }
+  CSS:         { category: frontend,    weight: 4 }
+  Tailwind:    { category: frontend,    weight: 4 }
+
+  # Runtimes
+  Node:        { category: runtime,     weight: 7 }
+  Deno:        { category: runtime,     weight: 3 }
+  Bun:         { category: runtime,     weight: 3 }
+
+  # Databases
+  PostgreSQL:  { category: database,    weight: 8 }
+  MySQL:       { category: database,    weight: 6 }
+  MongoDB:     { category: database,    weight: 5 }
+  Redis:       { category: database,    weight: 8 }
+  Elasticsearch: { category: database,  weight: 5 }
+  Cassandra:   { category: database,    weight: 4 }
+  DynamoDB:    { category: database,    weight: 5 }
+  SQLite:      { category: database,    weight: 3 }
+  Oracle:      { category: database,    weight: 3 }
+  SQL:         { category: database,    weight: 6 }
+  NoSQL:       { category: database,    weight: 4 }
+
+  # Messaging
+  Kafka:       { category: messaging,   weight: 7 }
+  RabbitMQ:    { category: messaging,   weight: 5 }
+  SQS:         { category: messaging,   weight: 4 }
+  PubSub:      { category: messaging,   weight: 4 }
+
+  # DevOps / Cloud
+  Docker:      { category: devops,      weight: 8 }
+  Kubernetes:  { category: devops,      weight: 7 }
+  AWS:         { category: cloud,       weight: 8 }
+  GCP:         { category: cloud,       weight: 6 }
+  Azure:       { category: cloud,       weight: 5 }
+  Terraform:   { category: devops,      weight: 5 }
+  Ansible:     { category: devops,      weight: 4 }
+  Jenkins:     { category: ci_cd,       weight: 4 }
+  GitHub Actions: { category: ci_cd,    weight: 5 }
+  GitLab CI:   { category: ci_cd,       weight: 4 }
+  CI/CD:       { category: ci_cd,       weight: 5 }
+
+  # Protocols / Architecture
+  REST:        { category: protocol,    weight: 8 }
+  GraphQL:     { category: protocol,    weight: 6 }
+  gRPC:        { category: protocol,    weight: 5 }
+  Microservices: { category: architecture, weight: 7 }
+  SOA:         { category: architecture, weight: 4 }
+  Event-Driven: { category: architecture, weight: 5 }
+
+  # ORM / Build
+  Hibernate:   { category: framework,   weight: 6 }
+  JPA:         { category: framework,   weight: 5 }
+  MyBatis:     { category: framework,   weight: 3 }
+  Maven:       { category: build,       weight: 4 }
+  Gradle:      { category: build,       weight: 4 }
+  Webpack:     { category: build,       weight: 3 }
+  Vite:        { category: build,       weight: 3 }
+
+  # Testing
+  JUnit:       { category: testing,     weight: 4 }
+  Mockito:     { category: testing,     weight: 3 }
+  Selenium:    { category: testing,     weight: 3 }
+  Cypress:     { category: testing,     weight: 3 }
+  Playwright:  { category: testing,     weight: 3 }
+  Jest:        { category: testing,     weight: 4 }
+  PyTest:      { category: testing,     weight: 3 }
+
+  # Version Control
+  Git:         { category: version_control, weight: 4 }
+  GitHub:      { category: version_control, weight: 4 }
+  GitLab:      { category: version_control, weight: 3 }
+
+  # OS
+  Linux:       { category: os,          weight: 5 }
+  Unix:        { category: os,          weight: 3 }
+  Windows:     { category: os,          weight: 2 }
+
+  # AI/ML
+  TensorFlow:  { category: ai_ml,       weight: 5 }
+  PyTorch:     { category: ai_ml,       weight: 5 }
+  LangChain:   { category: ai_ml,       weight: 4 }
+  LLM:         { category: ai_ml,       weight: 5 }
+  RAG:         { category: ai_ml,       weight: 4 }
+  NLP:         { category: ai_ml,       weight: 4 }
+  Computer Vision: { category: ai_ml,   weight: 4 }

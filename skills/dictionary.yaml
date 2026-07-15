@@ -1,0 +1,329 @@
+# Skills Knowledge Base
+# Each entry: canonical name, aliases (common variations), category, weight (1-10)
+# Weight reflects rarity/importance — higher = more differentiating
+
+- name: "Java"
+  aliases: ["Java 8", "Java 11", "Java 17", "Java 21", "Core Java", "Java SE", "Java EE"]
+  category: "Language"
+  weight: 7
+
+- name: "Python"
+  aliases: ["Python 3"]
+  category: "Language"
+  weight: 6
+
+- name: "TypeScript"
+  aliases: ["TS", "Typescript", "Type Script"]
+  category: "Language"
+  weight: 7
+
+- name: "JavaScript"
+  aliases: ["JS", "Vanilla JS", "ES6", "ECMAScript", "Node.js"]
+  category: "Language"
+  weight: 5
+
+- name: "SQL"
+  aliases: ["SQL", "Structured Query Language", "PL/SQL", "T-SQL"]
+  category: "Language"
+  weight: 5
+
+- name: "Kotlin"
+  aliases: []
+  category: "Language"
+  weight: 7
+
+- name: "Go"
+  aliases: ["Golang"]
+  category: "Language"
+  weight: 8
+
+- name: "Rust"
+  aliases: []
+  category: "Language"
+  weight: 9
+
+- name: "C++"
+  aliases: ["CPP", "Cpp", "C Plus Plus"]
+  category: "Language"
+  weight: 7
+
+- name: "C"
+  aliases: []
+  category: "Language"
+  weight: 5
+
+- name: "Spring Boot"
+  aliases: ["SpringBoot", "Spring-Boot", "Spring Boot Framework", "Spring Boot 3", "SB"]
+  category: "Backend"
+  weight: 8
+
+- name: "Spring"
+  aliases: ["Spring Framework", "Spring MVC", "Spring Core", "Spring IoC", "Spring DI"]
+  category: "Backend"
+  weight: 7
+
+- name: "Hibernate"
+  aliases: ["JPA", "Hibernate JPA", "ORM", "Hibernate ORM"]
+  category: "Backend"
+  weight: 6
+
+- name: "REST APIs"
+  aliases: ["REST", "RESTful", "RESTful APIs", "REST API", "RESTful API", "RESTful Web Services",
+            "REST APIs", "RESTful Services", "REST Endpoints"]
+  category: "Backend"
+  weight: 6
+
+- name: "Microservices"
+  aliases: ["Microservice", "Micro Services", "Micro-Services", "Distributed Systems"]
+  category: "Backend"
+  weight: 7
+
+- name: "FastAPI"
+  aliases: ["Fast API", "Fast-Api"]
+  category: "Backend"
+  weight: 7
+
+- name: "Node.js"
+  aliases: ["NodeJS", "Node", "Node JS", "Express.js", "ExpressJS", "Express"]
+  category: "Backend"
+  weight: 6
+
+- name: "Django"
+  aliases: []
+  category: "Backend"
+  weight: 6
+
+- name: "Flask"
+  aliases: []
+  category: "Backend"
+  weight: 5
+
+- name: "PostgreSQL"
+  aliases: ["Postgres", "Postgresql", "PSQL", "PgSQL", "Postgre SQL", "PG"]
+  category: "Database"
+  weight: 7
+
+- name: "MySQL"
+  aliases: ["My SQL", "MySql"]
+  category: "Database"
+  weight: 5
+
+- name: "SQLite"
+  aliases: ["SQLite3"]
+  category: "Database"
+  weight: 4
+
+- name: "MongoDB"
+  aliases: ["Mongo", "Mongo DB", "NoSQL", "Document Database"]
+  category: "Database"
+  weight: 6
+
+- name: "Redis"
+  aliases: ["Redis Cache", "Redis Caching", "Redis Cluster"]
+  category: "Database"
+  weight: 7
+
+- name: "Kafka"
+  aliases: ["Apache Kafka", "Kafka Streams", "Kafka Broker", "Message Queue", "Event Streaming"]
+  category: "Infrastructure"
+  weight: 8
+
+- name: "RabbitMQ"
+  aliases: ["Rabbit MQ", "Message Broker"]
+  category: "Infrastructure"
+  weight: 7
+
+- name: "Docker"
+  aliases: ["Docker Compose", "Docker Container", "Containerization", "Containers", "Dockerfile"]
+  category: "Infrastructure"
+  weight: 8
+
+- name: "Kubernetes"
+  aliases: ["K8s", "K8", "Kube", "Kubernetes Cluster", "Kubernetes Pods", "Container Orchestration"]
+  category: "Infrastructure"
+  weight: 9
+
+- name: "AWS"
+  aliases: ["Amazon Web Services", "AWS Cloud", "AWS EC2", "AWS S3", "AWS Lambda",
+            "Amazon S3", "Amazon EC2", "AWS RDS", "Cloud Computing"]
+  category: "Cloud"
+  weight: 8
+
+- name: "GCP"
+  aliases: ["Google Cloud", "Google Cloud Platform", "GCP Cloud"]
+  category: "Cloud"
+  weight: 8
+
+- name: "Azure"
+  aliases: ["Microsoft Azure", "Azure Cloud"]
+  category: "Cloud"
+  weight: 8
+
+- name: "Git"
+  aliases: ["GitHub", "GitLab", "Version Control", "VCS", "SCM", "Source Control"]
+  category: "Tool"
+  weight: 4
+
+- name: "Linux"
+  aliases: ["Unix", "Linux CLI", "Linux Command Line", "Linux Shell", "Bash", "Shell Scripting"]
+  category: "Tool"
+  weight: 5
+
+- name: "Playwright"
+  aliases: ["Playwright Automation", "Playwright Testing", "Playwright Test"]
+  category: "Tool"
+  weight: 6
+
+- name: "Maven"
+  aliases: ["Apache Maven", "Maven Build", "Maven Project"]
+  category: "Tool"
+  weight: 4
+
+- name: "Gradle"
+  aliases: ["Gradle Build", "Gradle Script"]
+  category: "Tool"
+  weight: 5
+
+- name: "React"
+  aliases: ["React JS", "ReactJS", "React.js", "React.JS", "React Native"]
+  category: "Frontend"
+  weight: 6
+
+- name: "Next.js"
+  aliases: ["NextJS", "Next JS", "Next.js Framework"]
+  category: "Frontend"
+  weight: 7
+
+- name: "TailwindCSS"
+  aliases: ["Tailwind CSS", "Tailwind", "Tailwind Css"]
+  category: "Frontend"
+  weight: 5
+
+- name: "HTML"
+  aliases: ["HTML5"]
+  category: "Frontend"
+  weight: 2
+
+- name: "CSS"
+  aliases: ["CSS3", "SCSS", "SASS", "Styled Components"]
+  category: "Frontend"
+  weight: 3
+
+- name: "System Design"
+  aliases: ["System Architecture", "Architecture Design", "High Level Design", "HLD",
+            "Low Level Design", "LLD", "Scalability", "Design Patterns"]
+  category: "Concept"
+  weight: 8
+
+- name: "OOP"
+  aliases: ["Object Oriented Programming", "OOPS", "Object-Oriented", "OOP Concepts"]
+  category: "Concept"
+  weight: 5
+
+- name: "DSA"
+  aliases: ["Data Structures", "Algorithms", "Data Structures and Algorithms",
+            "Data Structure", "Algorithm"]
+  category: "Concept"
+  weight: 6
+
+- name: "CI/CD"
+  aliases: ["Continuous Integration", "Continuous Deployment", "CI CD", "CI-CD"]
+  category: "Infrastructure"
+  weight: 7
+
+- name: "Agile"
+  aliases: ["Scrum", "Kanban", "Agile Methodology", "Agile Development"]
+  category: "Process"
+  weight: 3
+
+- name: "Testing"
+  aliases: ["Unit Testing", "Integration Testing", "JUnit", "Mockito", "Test Driven Development",
+            "TDD", "Automated Testing"]
+  category: "Process"
+  weight: 5
+
+- name: "API Design"
+  aliases: ["API Development", "API Architecture", "API Gateway", "Web API", "API"]
+  category: "Backend"
+  weight: 6
+
+- name: "JDBC"
+  aliases: ["Java JDBC", "JDBC Template", "Database Connectivity"]
+  category: "Backend"
+  weight: 4
+
+- name: "Postman"
+  aliases: ["Postman API", "Postman Testing"]
+  category: "Tool"
+  weight: 3
+
+- name: "ByteBuddy"
+  aliases: ["Byte Buddy", "Byte-Buddy"]
+  category: "Tool"
+  weight: 6
+
+- name: "JFR"
+  aliases: ["Java Flight Recorder", "JDK Flight Recorder"]
+  category: "Tool"
+  weight: 5
+
+- name: "JVM"
+  aliases: ["Java Virtual Machine", "JVM Internals", "JVM Tuning", "JVM Profiling"]
+  category: "Concept"
+  weight: 7
+
+- name: "Razorpay"
+  aliases: ["Razorpay API", "Razorpay Integration", "Razorpay Payment"]
+  category: "Tool"
+  weight: 5
+
+- name: "Threading"
+  aliases: ["Multithreading", "Concurrency", "Parallel Computing", "Multi Threading",
+            "Virtual Threads", "Project Loom"]
+  category: "Concept"
+  weight: 7
+
+- name: "Caching"
+  aliases: ["Cache", "Data Caching", "Distributed Cache", "Cache Invalidation"]
+  category: "Concept"
+  weight: 6
+
+- name: "GraphQL"
+  aliases: ["Graph QL", "GraphQL API", "GraphQL Server"]
+  category: "Backend"
+  weight: 6
+
+- name: "WebSockets"
+  aliases: ["Web Socket", "WS", "Socket Programming"]
+  category: "Backend"
+  weight: 6
+
+- name: "gRPC"
+  aliases: ["GRPC", "gRPC Framework"]
+  category: "Backend"
+  weight: 7
+
+- name: "Terraform"
+  aliases: ["Terraform IaC", "Infrastructure as Code"]
+  category: "Infrastructure"
+  weight: 8
+
+- name: "Ansible"
+  aliases: []
+  category: "Infrastructure"
+  weight: 7
+
+- name: "ELK Stack"
+  aliases: ["Elasticsearch", "Logstash", "Kibana", "Elastic Stack"]
+  category: "Infrastructure"
+  weight: 7
+
+- name: "Prometheus"
+  aliases: ["Prometheus Monitoring", "Prometheus Metrics"]
+  category: "Infrastructure"
+  weight: 7
+
+- name: "Grafana"
+  aliases: ["Grafana Dashboard", "Grafana Monitoring"]
+  category: "Infrastructure"
+  weight: 6

@@ -1,0 +1,372 @@
+# Skill Relationship Graph
+# Defines weighted relationships between skills for intelligent matching.
+#
+# parents:    prerequisite skills (with strength 0-1)
+# complements: commonly paired skills (with strength 0-1)
+# The graph is used for:
+#   - Skill expansion: given "Spring Boot", find Java, REST, Docker, etc.
+#   - Gap analysis: missing parent skills reduce confidence
+#   - Complement suggestion: "You know Kafka? You might also like Redis"
+
+Java:
+  parents: {}
+  complements:
+    SQL: 0.7
+    Linux: 0.6
+    Git: 0.5
+    Docker: 0.4
+    Microservices: 0.5
+
+Python:
+  parents: {}
+  complements:
+    SQL: 0.6
+    Linux: 0.6
+    Docker: 0.5
+    Git: 0.4
+    REST: 0.5
+    TypeScript: 0.3
+
+JavaScript:
+  parents: {}
+  complements:
+    TypeScript: 0.8
+    React: 0.7
+    Node: 0.7
+    HTML: 0.8
+    CSS: 0.8
+    Docker: 0.2
+
+TypeScript:
+  parents:
+    JavaScript: 0.9
+  complements:
+    React: 0.8
+    Node: 0.8
+    Next.js: 0.7
+    Angular: 0.4
+    Vue: 0.3
+
+Go:
+  parents: {}
+  complements:
+    Docker: 0.7
+    Kubernetes: 0.6
+    Microservices: 0.6
+    Linux: 0.5
+    PostgreSQL: 0.4
+    gRPC: 0.6
+
+Rust:
+  parents: {}
+  complements:
+    Linux: 0.5
+    Docker: 0.3
+    WebAssembly: 0.5
+    TypeScript: 0.2
+
+Spring:
+  parents:
+    Java: 0.95
+  complements:
+    "Spring Boot": 1.0
+    Hibernate: 0.7
+    REST: 0.7
+    Maven: 0.6
+    Docker: 0.3
+    Microservices: 0.5
+
+"Spring Boot":
+  parents:
+    Java: 0.95
+    Spring: 1.0
+  complements:
+    Microservices: 0.8
+    REST: 0.8
+    Docker: 0.5
+    Kubernetes: 0.3
+    PostgreSQL: 0.6
+    Redis: 0.7
+    Kafka: 0.6
+    Hibernate: 0.7
+    JPA: 0.8
+    Maven: 0.6
+    Gradle: 0.5
+    JUnit: 0.5
+    Mockito: 0.4
+
+Django:
+  parents:
+    Python: 0.95
+  complements:
+    REST: 0.7
+    PostgreSQL: 0.7
+    Docker: 0.5
+    Redis: 0.4
+    Celery: 0.5
+    HTML: 0.4
+    CSS: 0.3
+
+Flask:
+  parents:
+    Python: 0.9
+  complements:
+    REST: 0.8
+    PostgreSQL: 0.5
+    Docker: 0.5
+    Redis: 0.3
+
+React:
+  parents:
+    JavaScript: 0.8
+    TypeScript: 0.7
+  complements:
+    Next.js: 0.8
+    Node: 0.5
+    CSS: 0.6
+    Tailwind: 0.7
+    REST: 0.5
+    GraphQL: 0.5
+    HTML: 0.6
+    Vite: 0.5
+
+Angular:
+  parents:
+    TypeScript: 0.9
+    JavaScript: 0.6
+  complements:
+    REST: 0.5
+    TypeScript: 0.7
+    RxJS: 0.7
+    Node: 0.3
+
+Vue:
+  parents:
+    JavaScript: 0.8
+    TypeScript: 0.5
+  complements:
+    REST: 0.4
+    HTML: 0.6
+    CSS: 0.6
+    Vite: 0.5
+
+Node:
+  parents:
+    JavaScript: 0.8
+    TypeScript: 0.6
+  complements:
+    Express: 0.8
+    PostgreSQL: 0.6
+    MongoDB: 0.5
+    Docker: 0.5
+    Redis: 0.5
+    REST: 0.7
+    GraphQL: 0.5
+
+Express:
+  parents:
+    Node: 0.9
+    JavaScript: 0.7
+  complements:
+    REST: 0.8
+    PostgreSQL: 0.5
+    MongoDB: 0.4
+    Docker: 0.3
+    Redis: 0.3
+
+Next.js:
+  parents:
+    React: 0.9
+    TypeScript: 0.7
+    Node: 0.6
+  complements:
+    React: 0.8
+    TypeScript: 0.6
+    Vercel: 0.3
+    Tailwind: 0.5
+    CSS: 0.4
+
+PostgreSQL:
+  parents: {}
+  complements:
+    SQL: 0.9
+    Redis: 0.4
+    Docker: 0.3
+    Python: 0.4
+    Java: 0.4
+
+MySQL:
+  parents: {}
+  complements:
+    SQL: 0.9
+    Redis: 0.3
+    Docker: 0.2
+
+Redis:
+  parents: {}
+  complements:
+    Docker: 0.3
+    Spring: 0.4
+    "Spring Boot": 0.5
+    Node: 0.4
+    Python: 0.3
+    PostgreSQL: 0.4
+    Kafka: 0.3
+
+MongoDB:
+  parents: {}
+  complements:
+    Node: 0.6
+    Express: 0.5
+    JavaScript: 0.4
+    Docker: 0.2
+
+Kafka:
+  parents: {}
+  complements:
+    Microservices: 0.8
+    Java: 0.6
+    "Spring Boot": 0.6
+    Docker: 0.4
+    Kubernetes: 0.4
+    Redis: 0.3
+
+Docker:
+  parents:
+    Linux: 0.6
+  complements:
+    Kubernetes: 0.8
+    Jenkins: 0.4
+    Microservices: 0.6
+    AWS: 0.5
+    GCP: 0.4
+    CI/CD: 0.6
+    Linux: 0.4
+
+Kubernetes:
+  parents:
+    Docker: 0.8
+  complements:
+    AWS: 0.5
+    GCP: 0.5
+    Azure: 0.4
+    Microservices: 0.7
+    Docker: 0.7
+    Terraform: 0.6
+    CI/CD: 0.5
+    Linux: 0.4
+
+AWS:
+  parents: {}
+  complements:
+    Docker: 0.5
+    Kubernetes: 0.5
+    Terraform: 0.6
+    Linux: 0.5
+    Python: 0.4
+    Java: 0.3
+    DynamoDB: 0.4
+    SQS: 0.3
+    Lambda: 0.4
+
+GCP:
+  parents: {}
+  complements:
+    Docker: 0.4
+    Kubernetes: 0.5
+    Terraform: 0.5
+    Python: 0.5
+    Linux: 0.4
+
+Azure:
+  parents: {}
+  complements:
+    Docker: 0.4
+    Kubernetes: 0.4
+    Terraform: 0.4
+    "C#": 0.5
+    Linux: 0.3
+    Windows: 0.3
+
+REST:
+  parents: {}
+  complements:
+    Microservices: 0.7
+    Spring: 0.5
+    Docker: 0.3
+    Python: 0.4
+    Java: 0.4
+    GraphQL: 0.4
+    gRPC: 0.3
+    Node: 0.4
+
+GraphQL:
+  parents: {}
+  complements:
+    React: 0.5
+    Node: 0.5
+    REST: 0.4
+    Apollo: 0.6
+    TypeScript: 0.4
+
+Microservices:
+  parents: {}
+  complements:
+    Docker: 0.7
+    Kubernetes: 0.7
+    Spring: 0.5
+    Kafka: 0.6
+    REST: 0.7
+    Java: 0.5
+    AWS: 0.4
+    CI/CD: 0.5
+    Terraform: 0.3
+
+Hibernate:
+  parents:
+    Java: 0.9
+    Spring: 0.6
+  complements:
+    PostgreSQL: 0.6
+    MySQL: 0.5
+    JPA: 0.9
+    "Spring Boot": 0.6
+    SQL: 0.6
+
+Git:
+  parents: {}
+  complements:
+    Linux: 0.4
+    GitHub: 0.6
+    GitLab: 0.5
+    CI/CD: 0.5
+
+Linux:
+  parents: {}
+  complements:
+    Docker: 0.5
+    Git: 0.4
+    Python: 0.5
+    Bash: 0.6
+    AWS: 0.3
+
+Terraform:
+  parents:
+    AWS: 0.5
+    GCP: 0.4
+    Azure: 0.3
+  complements:
+    Docker: 0.5
+    Kubernetes: 0.6
+    AWS: 0.5
+    Linux: 0.3
+
+CI/CD:
+  parents: {}
+  complements:
+    Jenkins: 0.5
+    Docker: 0.5
+    GitHub Actions: 0.6
+    GitLab CI: 0.5
+    AWS: 0.3
+    Kubernetes: 0.3

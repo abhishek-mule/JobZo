@@ -1,0 +1,66 @@
+# Known ATS (Applicant Tracking System) types
+# url_pattern: regex to detect from career page URL
+# confidence: how reliably we can parse jobs (0-1)
+# parser: the Python class used to parse (if implemented)
+
+ats_types:
+  greenhouse:
+    name: Greenhouse
+    url_pattern: (?:boards|job-boards)\.(?:eu\.)?greenhouse\.io
+    confidence: 0.98
+    parser: ats.greenhouse.GreenhouseParser
+  lever:
+    name: Lever
+    url_pattern: jobs\.lever\.co
+    confidence: 0.95
+    parser: ats.lever.LeverParser
+  ashby:
+    name: Ashby
+    url_pattern: ashbyhq\.com
+    confidence: 0.90
+    parser: ats.ashby.AshbyParser
+  workday:
+    name: Workday
+    url_pattern: (?:myworkdayjobs|wd1|wd3|wd5)\.(?:com|myworkdayjobs)
+    confidence: 0.70
+    parser: ats.workday.WorkdayParser
+  smartrecruiters:
+    name: SmartRecruiters
+    url_pattern: smartrecruiters\.com
+    confidence: 0.85
+    parser: ats.smartrecruiters.SmartRecruitersParser
+  bamboohr:
+    name: BambooHR
+    url_pattern: bamboohr\.(?:com|eu)
+    confidence: 0.80
+    parser: ats.bamboohr.BambooHRParser
+  teamtailor:
+    name: Teamtailor
+    url_pattern: teamtailor\.com
+    confidence: 0.80
+    parser: ats.teamtailor.TeamtailorParser
+  personio:
+    name: Personio
+    url_pattern: personio\.(?:de|com)
+    confidence: 0.80
+    parser: ats.personio.PersonioParser
+  oracle_cloud:
+    name: Oracle Cloud
+    url_pattern: oraclecloud\.com|fa\.oraclecloud\.com
+    confidence: 0.75
+    parser: null
+  amazon:
+    name: Amazon Jobs
+    url_pattern: amazon\.jobs
+    confidence: 0.85
+    parser: null
+  icims:
+    name: iCIMS
+    url_pattern: icims\.com
+    confidence: 0.70
+    parser: null
+  generic:
+    name: Generic / Custom
+    url_pattern: null
+    confidence: 0.60
+    parser: ats.generic.GenericParser

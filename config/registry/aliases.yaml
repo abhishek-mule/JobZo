@@ -1,0 +1,70 @@
+# Company aliases — alternative names used in job postings
+# key matches the company id in companies.yaml
+
+aliases:
+  browserstack:
+    - Browser Stack
+    - BrowserStack Pvt Ltd
+  razorpay:
+    - Razorpay Software Private Limited
+  postman:
+    - Postman Inc
+    - Postman Technologies
+  atlassian:
+    - Atlassian Corporation
+    - Atlassian Pty Ltd
+  stripe:
+    - Stripe Inc
+    - Stripe Payments
+  gitlab:
+    - GitLab Inc
+    - GitLab B.V.
+  vercel:
+    - Vercel Inc
+    - Zeit
+  anthropic:
+    - Anthropic PBC
+  openai:
+    - OpenAI OpCo
+    - OpenAI LLC
+  notion:
+    - Notion Labs
+    - Notion Labs Inc
+  cred:
+    - CRED
+    - CredMoney
+    - Dreamplug
+  jpmorgan:
+    - JP Morgan
+    - JPMC
+    - JPMorgan Chase
+    - Chase
+    - JPMorgan Chase & Co.
+  goldmansachs:
+    - Goldman Sachs
+    - GS
+    - Goldman Sachs & Co.
+  microsoft:
+    - Microsoft Corporation
+    - MS
+    - Microsoft India
+  amazon:
+    - Amazon Web Services
+    - AWS
+    - Amazon.com
+    - Amazon Development Centre
+  tcs:
+    - Tata Consultancy Services
+    - TCS
+  accenture:
+    - Accenture PLC
+    - Accenture India
+  zoho:
+    - Zoho Corporation
+    - Zoho Corp
+  freshworks:
+    - Freshworks Inc
+    - Freshworks
+  linear:
+    - Linear Orbit
+    - Linear
