@@ -1,237 +1,112 @@
 <img width="1407" height="768" alt="Gemini_Generated_Image_brclqgbrclqgbrcl" src="https://github.com/user-attachments/assets/3600c1e9-c997-45a8-8682-57c16f6cf0ab" />
 
-# JobZo — Career Optimization Engine
+# JobZo — Evidence-Driven Career Decisions
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)]()
-[![Tests](https://img.shields.io/badge/Tests-126%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)]()
 [![Benchmarks](https://img.shields.io/badge/Benchmarks-11%2F11%20passing-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
-Modern job search tools optimize for **applications submitted**.
-JobZo optimizes for **career outcomes**.
+## Why JobZo exists
 
-Every recommendation, task, and application is chosen to maximize the expected
-long-term value of a developer's career — not simply the number of applications
-sent.
+Most job tools optimize for **applications submitted**. JobZo optimizes for **career outcomes**.
 
----
+Instead of asking *"Which jobs match my resume?"* JobZo asks: ***"What's the highest-return thing I can do in the next 90 minutes to improve my career?"***
 
-## The problem
+Sometimes that's applying. Sometimes it's networking. Sometimes it's learning a skill. Sometimes it's preparing for tomorrow's interview.
 
-Most platforms answer:
-
-> *"What jobs exist?"*
-
-JobZo answers:
-
-> *"Given your skills, goals, history, and limited time today, what is the
-> single highest-impact action you should take next?"*
-
-That means the system does not just find jobs. It estimates interview probability
-from a graph-aware skill match, scores opportunities across six dimensions,
-snapshots every decision immutably, generates tasks from providers, schedules
-them within a daily time budget using a dependency-respecting planner, and
-executes them through a lifecycle-aware mission engine.
-
-The output is not a list of jobs. It is a **mission**.
-
----
-
-## Architecture
-
-```text
-                           ┌──────────────────┐
-                           │  Company Registry │
-                           │    Skill Graph    │
-                           │  DecisionSnapshot │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │     Retriever    │
-                           │     Ranker       │
-                           │    Normalizer    │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │ OpportunitySnap. │
-                           └────────┬─────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              ┌─────▼─────┐  ┌──────▼──────┐  ┌─────▼─────┐
-              │   Apply   │  │  Follow-up  │  │  Future   │
-              │  Provider │  │  Provider   │  │ Providers │
-              └─────┬─────┘  └──────┬──────┘  └─────┬─────┘
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │  TaskProviderReg. │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │  GreedyPlanner   │
-                           │ (depth + density │
-                           │  + budget pack)  │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │     Mission      │
-                           │   (accepted +    │
-                           │   rejected +     │
-                           │   provenance)    │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │    Execution     │
-                           │  (lifecycle mgr) │
-                           └────────┬─────────┘
-                                    │
-                           ┌────────▼─────────┐
-                           │   Events /       │
-                           │   Benchmarks /   │
-                           │   Simulation     │
-                           └──────────────────┘
+```
+You → Today's Mission → Action → Observation → Learning → Better Tomorrow
 ```
 
-Layers are independent. Each has a distinct responsibility, owns its own tests,
-and can be replaced without touching the others.
+JobZo continuously measures which actions produce interviews and offers, then updates its recommendations using observed outcomes instead of fixed rules. **Every cycle improves the next one.**
 
 ---
 
-## Design Principles
-
-1. **Optimize outcomes, not activity.**  
-   Tasks are ranked by expected value per minute, not by convenience.
-
-2. **Every recommendation must be explainable.**  
-   `TaskNode.why()` returns a human-readable justification for every task.
-
-3. **Decisions are versioned and reproducible.**  
-   `DecisionSnapshot` records the full retriever/ranker/registry versions
-   so any historical decision can be audited.
-
-4. **Execution is more valuable than discovery.**  
-   The planner packs into a time budget; tasks that don't fit are rejected
-   with a reason, not silently dropped.
-
-5. **Benchmarks are required before heuristics change.**  
-   Retrieval accuracy, ranker accuracy, and planner efficiency are measured
-   before and after every change.
-
-6. **User time is the most constrained resource.**  
-   A mission tells you what to do, what to skip, and why.
-
----
-
-## Current status
-
-**Today:**
-
-- Rule- and graph-based decision engine.
-- Benchmark-driven retrieval and ranking (11 suites, 126 tests).
-- Mission planning over expected value with dependency resolution.
-- Immutable, versioned decision snapshots.
-- Simulation framework for planner comparison.
-
-**Next:**
-
-- Outcome-driven probability estimation from real application results.
-- Adaptive planning that learns from user feedback.
-- Additional task providers (follow-up, interview prep, networking, learning).
-- Career graph for long-term trajectory optimization.
-
----
-
-## Roadmap
-
-```text
-Phase 1 — Intelligence
-    ✓ Retrieval engine (skill graph, normalization, eligibility)
-    ✓ Ranking engine (interview probability, confidence, risk)
-    ✓ Decision snapshots (versioned, immutable, reproducible)
-
-Phase 2 — Planning
-    ✓ Mission engine (TaskNode, lifecycle, dependencies)
-    ✓ Task provider registry (pluggable, priority-ordered)
-    ✓ Greedy planner (depth-respecting value density ranking)
-
-Phase 3 — Learning
-    □ Outcome engine (calibrate probabilities from real outcomes)
-    □ Probability calibration (observed → predicted)
-    □ Adaptive planning (planner adjusts from user behavior)
-
-Phase 4 — Career Graph
-    □ Long-term career trajectory optimization
-    □ Skill investment modeling (learn X → unlock Y)
-    □ Community outcome analytics (anonymized, aggregated)
-```
-
----
-
-## Stack
-
-- **Language:** Python 3.12+
-- **Storage:** SQLite via SQLAlchemy 2.0 (local-first, zero-infrastructure)
-- **Parsing:** Reusable Playwright scripts + ATS-specific extractors (Ashby,
-  BambooHR, Greenhouse, Lever, Personio, SmartRecruiters, Teamtailor, Workday)
-- **Graph:** Weighted DAG for skill relationships (parent, complement)
-- **Decision Engine:** Composite score vector (6-dim), tier assignment,
-  interview probability estimation
-- **Planning:** Dependency-graph-aware greedy scheduler with budget packing
-- **Testing:** 126 tests, 11 benchmark suites, simulation framework
-
----
-
-## Quick start
+## Quick start (under 5 minutes)
 
 ```bash
 git clone https://github.com/abhishek-mule/JobZo.git
 cd JobZo
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python3 -m mission.engine    # start the mission loop
+
+# Start the mission loop — no commands needed
+python3 -m mission.engine
 ```
 
-```bash
-# Run the full test suite (126 tests)
-python3 -m pytest tests/
+You'll see a prioritized inbox:
 
-# Run benchmarks (11 suites)
-python3 -c "from benchmark.runner import run_all, print_results; print_results(run_all())"
-
-# Run a planner simulation (30 days)
-python3 -c "
-from domain.planner import GreedyPlanner
-from domain.simulation import simulate, generate_task_pool, SimulationConfig
-result = simulate(GreedyPlanner(), SimulationConfig(days=30))
-print(result.summary())
-"
 ```
+Good Morning — Applied 14 — Interviews 3 — Rate 21.4%
+
+Today: Review 4 opportunities · Prepare 1 interview · ~45 min
+
+  1. 🚀 BrowserStack — Backend Engineer  ⭐⭐⭐⭐⭐ [15 min]
+  2. 🚀 Postman — API Engineer           ⭐⭐⭐⭐  [20 min]
+  3. 🎤 Groww — Interview Prep           [30 min]
+
+Quick Actions
+  [s] Sync  [i] Insights  [r] Review all  [q] Quit
+```
+
+Pick an item (`1`, `2`, `3`) and JobZo shows you why it recommended it, the expected outcome, and the next action. Apply directly from the terminal.
 
 ---
 
-## Project structure
+## This is not a claim — it's a hypothesis being tested. Every experiment, including failures, is documented in [the research logbook](docs/RESEARCH.md).
+
+Further reading: [Design principles](docs/DESIGN_PRINCIPLES.md) · [Research logbook](docs/RESEARCH.md) · [Roadmap](ROADMAP.md)
+
+---
+
+## What JobZo does differently
+
+**Closes the feedback loop.** Every application, skip, interview, and offer becomes an observation. JobZo compares every prediction against what actually happened, identifies which assumptions were wrong, and improves the next recommendation. This compounds — the more you use it, the smarter it gets.
+
+**Optimizes your scarce resource (time).** The planner ranks tasks by expected value per minute. A 6-minute founder email can outrank a 15-minute application if the data says it's more likely to produce an outcome.
+
+**Learns from outcomes, not rules.** After enough observations, JobZo discovers proprietary knowledge: *"Resume v6 outperforms v5 by 23% for backend roles"* or *"Tuesday morning applications get 12% more responses."* No competitor can buy that dataset.
+
+---
+
+## Commands reference
+
+| Command | What it does | When to use it |
+|---------|-------------|----------------|
+| `jobzo` | Open the mission loop (inbox + actions) | Every day |
+| `jobzo collect` | Fetch new jobs from all providers | Weekly |
+| `jobzo rank` | Score unscored jobs against your skills | After collect |
+| `jobzo track <id> --status <s>` | Update application status | When something changes |
+| `jobzo outcome <id> --rounds 3` | Record interview outcome | After an interview |
+| `jobzo prepare <id>` | Generate interview prep plan | Before an interview |
+| `jobzo insight` | Personal analytics dashboard | Weekly review |
+| `jobzo benchmark` | Run the 11-benchmark suite | After code changes |
+
+---
+
+## How it works (the 30-second version)
 
 ```
-├── ai/              Retriever, ranker, normalizer, skill graph, score vector
-├── ats/             ATS-specific parsers (7 platforms)
-├── benchmark/       Retrieval, ranker, and score accuracy benchmarks
-├── domain/          Mission planner, task providers, execution engine
-│   ├── models.py    TaskNode, Mission, ProviderResult, OpportunitySnapshot
-│   ├── providers.py TaskProvider protocol + ApplyTaskProvider
-│   ├── registry.py  TaskProviderRegistry (pluggable provider discovery)
-│   ├── planner.py   GreedyPlanner (dependency depth + value density)
-│   ├── execution.py MissionExecution (lifecycle manager)
-│   └── simulation.py  Monte Carlo planner evaluation
-├── database/        SQLAlchemy models + connection management
-├── mission/         Interactive mission engine (inbox, review, execution)
-├── resumes/         Resume registry, optimizer, JD analyzer, generator
-├── services/        Eligibility engine, company registry, config, caching
-├── skills/          Skill knowledge base (YAML dictionary with aliases)
-├── tracker/         Decision intelligence, events, outreach, outcomes
-└── tests/           126 tests across all layers
+You apply → JobZo observes the outcome → Compares prediction vs reality
+→ Identifies which assumption was wrong → Improves next recommendation
 ```
+
+Every component feeds into this loop. The architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Detailed usage is in [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+
+---
+
+## What's built
+
+| Layer | What | Status |
+|-------|------|--------|
+| Knowledge | Company registry, skill graph, title normalization | ✓ |
+| Decision | Retriever, ranker, decision snapshots (versioned, immutable) | ✓ |
+| Execution | Mission planner, task providers, outreach, follow-ups | ✓ |
+| Learning | Observation pipeline, calibration curves, root-cause analysis | ✓ |
+| Research | A/B experiment framework, statistical evaluation | ✓ |
+| Capital | 6-dim career objective (resume, skill, network, interview, reputation, opportunity) | ✓ |
+| Simulation | Monte Carlo scenario comparison ("apply vs learn vs network?") | ✓ |
 
 ---
 
