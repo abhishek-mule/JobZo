@@ -30,8 +30,17 @@ class GreedyPlanner:
         self,
         provider_results: list[ProviderResult],
         context: MissionContext,
+        planner_version: str = "greedy_v1",
+        experiment_treatment: str = "",
     ) -> Mission:
-        """Plan a mission from provider results and context."""
+        """Plan a mission from provider results and context.
+
+        Args:
+            provider_results: Tasks from all providers.
+            context: Time budget, goal, preferences.
+            planner_version: Identifies which planner variant produced this mission.
+            experiment_treatment: Which A/B treatment this mission belongs to.
+        """
         all_tasks = []
         for pr in provider_results:
             all_tasks.extend(pr.tasks)
@@ -43,10 +52,10 @@ class GreedyPlanner:
         total_gain = sum(t.expected_value for t in packed)
         confidence = self._compute_confidence(packed)
 
-        # Provenance for traceability
+        # Provenance for traceability — now includes experiment info
         provider_map = {r.provider: r.provider_version for r in provider_results}
         provenance = {
-            "planner": "greedy_v1",
+            "planner": planner_version,
             "planned_at": datetime.utcnow().isoformat(),
             "budget_minutes": context.time_budget,
             "goal": context.goal,
@@ -54,6 +63,7 @@ class GreedyPlanner:
             "accepted": len(packed),
             "rejected": len(rejected),
             "providers": provider_map,
+            "experiment_treatment": experiment_treatment,
         }
 
         return Mission(
