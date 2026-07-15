@@ -1342,6 +1342,9 @@ def _most_common_missing_skill() -> tuple[str, int, int] | None:
 def _handle_inbox_item(item: InboxItem):
     """Show item detail (timeline + score) then offer actions."""
     _show_item_detail(item)
+    if item.app_id and item.category in ("apply", "review"):
+        from domain.observation import ObservationService, ObservationType
+        ObservationService.record(item.app_id, ObservationType.APPLICATION_VIEWED)
     console.print()
     console.print("[bold cyan]Next step[/bold cyan]")
 
@@ -1610,6 +1613,9 @@ def _run_review_item(item: InboxItem):
         input("\nPress Enter to continue...")
         return
 
+    from domain.observation import ObservationService, ObservationType
+    ObservationService.record(str(app.id), ObservationType.APPLICATION_VIEWED)
+
     job = app.job
     _show_job_card(app, job, 1, 1)
     console.print()
@@ -1676,11 +1682,17 @@ def run_mission():
     """Main loop: show inbox → act → repeat until exit."""
     _system_check()
 
+    from domain.observation import ObservationService, ObservationType
+    import uuid
+    _session_id = uuid.uuid4().hex[:8]
+    ObservationService.record(_session_id, ObservationType.SESSION_START, actor="user")
+
     while True:
         try:
             choice, item = show_dashboard()
 
             if choice == "q":
+                ObservationService.record(_session_id, ObservationType.SESSION_END, actor="user")
                 console.clear()
                 console.print("[bold cyan]Good luck with your job search! 🚀[/bold cyan]")
                 break
@@ -1691,6 +1703,12 @@ def run_mission():
             elif choice == "r":
                 _action_review_jobs()
             elif isinstance(choice, int) and item:
+                ObservationService.record(
+                    item.app_id or _session_id,
+                    ObservationType.MISSION_ACCEPTED,
+                    actor="user",
+                    metadata={"category": item.category, "score": item.score},
+                )
                 _handle_inbox_item(item)
 
         except KeyboardInterrupt:
