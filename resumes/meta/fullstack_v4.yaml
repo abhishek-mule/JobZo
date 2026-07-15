@@ -1,0 +1,20 @@
+name: fullstack_v4
+file: resumes/fullstack_v4.pdf
+skills: [Spring Boot, React, TypeScript, PostgreSQL, JavaScript, Docker, REST APIs, Git, TailwindCSS, Next.js]
+projects:
+  - name: BillZo
+    description: "Merchant-first billing and payment recovery platform"
+    skills: [TypeScript, PostgreSQL, Redis, React, Spring Boot, Razorpay, Node.js, TailwindCSS]
+    domain: payments
+  - name: JobZo
+    description: "AI-assisted job application automation platform"
+    skills: [Python, Playwright, SQLite, CLI, LLM]
+    domain: automation
+  - name: vtracer
+    description: "Lightweight JVM profiling agent for runtime instrumentation"
+    skills: [Java, ByteBuddy, JFR]
+    domain: systems
+domains: [saas, fintech, payments, automation, web]
+experience: mid
+education: "B.Tech in Computer Technology"
+target_roles: [Full Stack Engineer, Full Stack Developer, Software Engineer, Fullstack Developer]

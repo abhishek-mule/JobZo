@@ -1,0 +1,10 @@
+- company: "VahanFin"
+  role: "Web Developer Intern"
+  location: "Nagpur, India"
+  start_date: "2024-06"
+  end_date: "2025-01"
+  highlights:
+    - "Developed backend APIs and frontend features using Spring Boot and React."
+    - "Worked with relational databases and optimized SQL queries."
+    - "Collaborated using Git and GitHub in a team environment."
+    - "Fixed production bugs and implemented feature improvements."

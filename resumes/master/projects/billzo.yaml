@@ -1,0 +1,39 @@
+title: "BillZo"
+role: "Backend Engineer"
+description: "Merchant-first billing and payment recovery platform"
+technologies:
+  - "TypeScript"
+  - "PostgreSQL"
+  - "Redis"
+  - "React"
+  - "Spring Boot"
+  - "Razorpay"
+  - "Node.js"
+  - "TailwindCSS"
+domains:
+  - "Payments"
+  - "Billing"
+  - "SaaS"
+  - "Backend"
+keywords:
+  - "Multi-tenant"
+  - "Billing"
+  - "Payments"
+  - "PostgreSQL"
+  - "Redis"
+  - "Caching"
+  - "Authentication"
+  - "Role-based Access"
+  - "Event-driven"
+  - "Ledger"
+difficulty: high
+impact:
+  users: ""
+  scale: "multi-tenant"
+github: "https://github.com/abhishek-mule/BillZo"
+resume_points:
+  - "Built a multi-tenant billing platform for merchants with offline-first architecture."
+  - "Designed event-driven payment workflows and ledger-based transaction handling."
+  - "Implemented payment integrations (Razorpay), Redis caching, and role-based authentication."
+  - "Reduced billing workflow to a few seconds through optimized backend APIs."
+priority: 10

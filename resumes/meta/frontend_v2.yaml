@@ -1,0 +1,16 @@
+name: frontend_v2
+file: resumes/frontend_v2.pdf
+skills: [React, TypeScript, JavaScript, CSS, HTML, Next.js, REST APIs, Git, TailwindCSS]
+projects:
+  - name: BillZo
+    description: "Merchant-first billing and payment recovery platform"
+    skills: [React, TypeScript, TailwindCSS, Node.js, REST APIs]
+    domain: payments
+  - name: JobZo
+    description: "AI-assisted job application automation platform"
+    skills: [Python, Playwright, CLI, SQLite]
+    domain: automation
+domains: [saas, web, automation, payments]
+experience: mid
+education: "B.Tech in Computer Technology"
+target_roles: [Frontend Engineer, Frontend Developer, UI Engineer, React Developer]

@@ -1,0 +1,40 @@
+title: "JobZo"
+role: "Full Stack Engineer"
+description: "AI-assisted job application automation platform"
+technologies:
+  - "Python"
+  - "Playwright"
+  - "SQLite"
+  - "CLI"
+  - "LLM"
+  - "Rich"
+domains:
+  - "Automation"
+  - "ATS"
+  - "AI"
+  - "Browser"
+  - "CLI"
+keywords:
+  - "Browser Automation"
+  - "Resume Parsing"
+  - "Workflow"
+  - "SQLite"
+  - "Playwright"
+  - "LLM"
+  - "Rule Engine"
+  - "Scoring"
+  - "Career OS"
+difficulty: high
+impact:
+  applications: 100+
+  ats_supported:
+    - "Greenhouse"
+    - "Ashby"
+    - "Lever"
+github: "https://github.com/abhishek-mule/JobZo"
+resume_points:
+  - "Developed automated job application assistant supporting Greenhouse, Ashby, and Lever ATS platforms."
+  - "Built explainable rule-based job scoring engine using skills, experience, location, and freshness."
+  - "Implemented Playwright browser automation with semantic element detection and human-in-the-loop confirmation."
+  - "Designed modular provider architecture for career pages with SQLite caching and ATS-aware parsing."
+priority: 9

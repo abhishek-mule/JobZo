@@ -1,0 +1,20 @@
+name: java_v1
+file: resumes/java_v1.pdf
+skills: [Java, Spring Boot, Spring, Hibernate, PostgreSQL, Microservices, Docker, Kafka, REST APIs, Git, Linux]
+projects:
+  - name: vtracer
+    description: "Lightweight JVM profiling agent for runtime instrumentation"
+    skills: [Java, ByteBuddy, JFR, Gradle]
+    domain: systems
+  - name: BillZo
+    description: "Merchant-first billing and payment recovery platform"
+    skills: [Java, Spring Boot, PostgreSQL, Redis, React, Razorpay]
+    domain: payments
+  - name: JobZo
+    description: "AI-assisted job application automation platform"
+    skills: [Python, Playwright, SQLite]
+    domain: automation
+domains: [saas, fintech, payments, systems]
+experience: mid
+education: "B.Tech in Computer Technology"
+target_roles: [Java Developer, Backend Engineer, Spring Boot Developer, Software Engineer]

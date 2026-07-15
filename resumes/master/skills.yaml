@@ -1,0 +1,44 @@
+languages:
+  - name: "Java"
+    level: 4
+    years: 2
+  - name: "TypeScript"
+    level: 3
+    years: 1
+  - name: "Python"
+    level: 3
+    years: 1
+  - name: "SQL"
+    level: 3
+    years: 2
+  - name: "JavaScript"
+    level: 3
+    years: 1
+
+backend:
+  - "Spring Boot"
+  - "JDBC"
+  - "Hibernate"
+  - "REST APIs"
+  - "Node.js"
+  - "Express"
+
+frontend:
+  - "React"
+  - "Next.js"
+  - "TailwindCSS"
+
+databases:
+  - "PostgreSQL"
+  - "MySQL"
+  - "SQLite"
+  - "MongoDB"
+  - "Redis"
+
+tools:
+  - "Git"
+  - "GitHub"
+  - "Playwright"
+  - "Docker"
+  - "Linux"
+  - "Postman"

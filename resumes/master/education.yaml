@@ -1,0 +1,9 @@
+- institution: "Priyadarshini College Of Engineering, Nagpur"
+  degree: "B.Tech in Computer Technology"
+  expected_graduation: "2027"
+  coursework:
+    - "Operating Systems"
+    - "DBMS"
+    - "Computer Networks"
+    - "Object-Oriented Programming"
+  gpa: ""

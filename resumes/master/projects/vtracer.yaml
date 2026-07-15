@@ -1,0 +1,32 @@
+title: "vtracer"
+role: "Systems Engineer"
+description: "Lightweight JVM profiling agent for runtime instrumentation"
+technologies:
+  - "Java 21"
+  - "ByteBuddy"
+  - "JFR"
+  - "Gradle"
+domains:
+  - "Systems"
+  - "Performance"
+  - "JVM"
+  - "Instrumentation"
+keywords:
+  - "JVM"
+  - "Profiling"
+  - "ByteBuddy"
+  - "Java 21"
+  - "Instrumentation"
+  - "Virtual Threads"
+  - "Performance"
+  - "Agent"
+difficulty: high
+impact:
+  overhead: "minimal"
+github: "https://github.com/abhishek-mule/vtracer"
+resume_points:
+  - "Built a lightweight JVM profiling agent for runtime instrumentation using Java 21."
+  - "Implemented dynamic method tracing using ByteBuddy bytecode manipulation."
+  - "Added virtual-thread analysis and configurable profiling with minimal runtime overhead."
+  - "Generated structured profiling reports through JFR event streaming."
+priority: 8

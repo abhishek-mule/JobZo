@@ -1,0 +1,20 @@
+name: sde_v1
+file: resumes/sde_v1.pdf
+skills: [Java, Spring Boot, Python, FastAPI, PostgreSQL, Docker, REST APIs, Git, Linux, Microservices, TypeScript, Next.js, React]
+projects:
+  - name: BillZo
+    description: "Merchant-first billing and payment recovery platform"
+    skills: [TypeScript, PostgreSQL, Redis, React, Spring Boot, Razorpay, Node.js, TailwindCSS]
+    domain: payments
+  - name: JobZo
+    description: "AI-assisted job application automation platform"
+    skills: [Python, Playwright, SQLite, Docker, LLM, CLI]
+    domain: automation
+  - name: vtracer
+    description: "Lightweight JVM profiling agent for runtime instrumentation"
+    skills: [Java, ByteBuddy, JFR, Gradle]
+    domain: systems
+domains: [saas, fintech, payments, automation, systems]
+experience: mid
+education: "B.Tech in Computer Technology"
+target_roles: [Software Engineer, SDE, Backend Engineer, Full Stack Engineer]

@@ -1,0 +1,20 @@
+name: backend_v3
+file: resumes/backend_v3.pdf
+skills: [Spring Boot, Java, PostgreSQL, Docker, REST APIs, Git, Linux, Microservices]
+projects:
+  - name: BillZo
+    description: "Merchant-first billing and payment recovery platform"
+    skills: [TypeScript, PostgreSQL, Redis, React, Spring Boot, Razorpay, Node.js, TailwindCSS]
+    domain: payments
+  - name: JobZo
+    description: "AI-assisted job application automation platform"
+    skills: [Python, Playwright, SQLite, Docker]
+    domain: automation
+  - name: vtracer
+    description: "Lightweight JVM profiling agent for runtime instrumentation"
+    skills: [Java, ByteBuddy, JFR, Gradle]
+    domain: systems
+domains: [saas, fintech, payments, automation]
+experience: mid
+education: "B.Tech in Computer Technology"
+target_roles: [Backend Engineer, Software Engineer, Platform Engineer, Backend Developer]
