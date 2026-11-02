@@ -255,7 +255,9 @@ adjacent tables instead of rewriting their history.
 | `JOBZO_SMTP_*` | unset | Enables real SMTP sending |
 | `JOBZO_SKIP_MIGRATIONS` | unset | Skip Alembic on startup (tests) |
 
-Profile data comes from `resumes/master/profile.yaml`.
+Profile data comes from `resumes/master/profile.yaml`. Its `resume` field
+selects the main resume (currently `Abhishek_Mule_Resume`); resume metadata
+lives in `resumes/meta/`.
 
 ---
 

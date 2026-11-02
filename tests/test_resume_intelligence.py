@@ -93,12 +93,21 @@ def test_skill_patterns_compiled():
 def test_registry_loads_all_resumes():
     reg = get_registry()
     names = reg.names()
-    assert len(names) == 5
+    assert len(names) == 6
+    assert "Abhishek_Mule_Resume" in names
     assert "backend_v3" in names
     assert "java_v1" in names
     assert "fullstack_v4" in names
     assert "frontend_v2" in names
     assert "sde_v1" in names
+
+
+def test_registry_main_resume_is_the_pdf_default():
+    reg = get_registry()
+    main = reg.main_resume()
+    assert main is not None
+    assert main.name == "Abhishek_Mule_Resume"
+    assert main.file == "resumes/Abhishek_Mule_Resume.pdf"
 
 
 def test_registry_get_returns_meta():
@@ -158,7 +167,7 @@ def test_scorer_returns_all_resumes():
     reg = get_registry()
     analysis = analyze_jd(BACKEND_JD)
     scored = score_resumes(analysis, reg.all(), jd_text=BACKEND_JD)
-    assert len(scored) == 5
+    assert len(scored) == 6
 
 
 def test_scorer_sorts_by_composite():

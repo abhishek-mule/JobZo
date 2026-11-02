@@ -303,7 +303,27 @@ def mark_failed(request_id: str, error: str = "") -> bool:
 
 # ── Application queue ────────────────────────────────────────────────────────
 
-def _recommend_resume(job) -> dict[str, Any]:
+def _resume_match_score(meta, text: str) -> int:
+    score = 0
+    for skill in meta.skills:
+        if skill.lower() in text:
+            score += 2
+    for target in meta.target_roles:
+        if target.lower() in text:
+            score += 3
+    for domain in meta.domains:
+        if domain.lower() in text:
+            score += 1
+    return score
+
+
+def _recommend_resume(job, profile: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Pick the user's main resume, unless the profile names a specific variant.
+
+    Role-specific variants still exist in the registry, but the main resume is
+    the default for every application so the pipeline never falls back to an
+    arbitrary old file.
+    """
     try:
         from resumes.registry import get_registry
         registry = get_registry()
@@ -313,30 +333,33 @@ def _recommend_resume(job) -> dict[str, Any]:
             " ".join(getattr(job, "skills", []) or []),
         ])).lower()
 
+        preferred = (profile or {}).get("resume") or ""
+        chosen = registry.get(preferred) if preferred else None
+        if chosen is None:
+            chosen = registry.main_resume() or registry.default_resume()
+        if chosen is not None:
+            return {
+                "name": chosen.name,
+                "file": chosen.file,
+                "match": _resume_match_score(chosen, text),
+            }
+
+        # Last resort: score whatever metadata exists.
         best, best_score = None, -1
         for meta in registry.all():
-            score = 0
-            for skill in meta.skills:
-                if skill.lower() in text:
-                    score += 2
-            for target in meta.target_roles:
-                if target.lower() in text:
-                    score += 3
-            for domain in meta.domains:
-                if domain.lower() in text:
-                    score += 1
+            score = _resume_match_score(meta, text)
             if score > best_score:
                 best, best_score = meta, score
         if best:
             return {"name": best.name, "file": best.file, "match": best_score}
     except Exception:
         pass
-    return {"name": "backend_v3", "file": "backend_v3.pdf", "match": 0}
+    return {"name": "Abhishek_Mule_Resume", "file": "resumes/Abhishek_Mule_Resume.pdf", "match": 0}
 
 
 def _application_payload(app: Application, job: Job, profile: dict[str, Any]) -> dict[str, Any]:
     from services.opportunity_score import application_channel
-    resume = _recommend_resume(job)
+    resume = _recommend_resume(job, profile)
     return {
         "company": job.company,
         "role": job.title,

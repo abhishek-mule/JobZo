@@ -21,6 +21,7 @@ class ResumeMeta:
     experience: str = "mid"
     education: str = ""
     target_roles: list[str] = field(default_factory=list)
+    main: bool = False
 
     @property
     def all_skill_names(self) -> set[str]:
@@ -61,6 +62,17 @@ class ResumeRegistry:
 
     def names(self) -> list[str]:
         return list(self._resumes.keys())
+
+    def main_resume(self) -> ResumeMeta | None:
+        """Return the resume explicitly marked as the user's main resume."""
+        for meta in self._resumes.values():
+            if meta.main:
+                return meta
+        return None
+
+    def default_resume(self) -> ResumeMeta | None:
+        """Main resume when configured, otherwise the first registered variant."""
+        return self.main_resume() or next(iter(self._resumes.values()), None)
 
     def by_role(self, role: str) -> list[ResumeMeta]:
         role_lower = role.lower()

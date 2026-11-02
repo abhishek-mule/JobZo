@@ -681,17 +681,13 @@ def _run_apply_session(app: Application) -> bool:
             console.print(f"  [yellow]Resume '{resume_path}' not found.[/yellow]")
             resume_path = ""
     if not resume_path:
-        # Show available resumes and let user pick
-        from pathlib import Path
-        resume_dir = Path(__file__).parent.parent / "resumes"
-        available = sorted(p.stem for p in resume_dir.glob("*.pdf") if p.stem != "generated")
-        if available:
-            console.print("\n  [bold]Available resumes:[/bold]")
-            for i, name in enumerate(available, 1):
-                console.print(f"     [bold]{i}[/bold]. {name}.pdf")
-            console.print()
-            choice = Prompt.ask("  Select resume", choices=[str(i) for i in range(1, len(available) + 1)], default="1")
-            resume_path = available[int(choice) - 1]
+        # Use the configured main resume by default; only prompt when the
+        # registry has no usable PDF.
+        from resumes.registry import get_registry
+        registry = get_registry()
+        meta = registry.default_resume()
+        if meta:
+            resume_path = meta.name
             app.resume_used = resume_path
             session_resume = get_session()
             try:
@@ -702,8 +698,29 @@ def _run_apply_session(app: Application) -> bool:
             finally:
                 session_resume.close()
         else:
-            console.print("  [red]No resume files found.[/red]")
-            return False
+            # Show available resumes and let user pick
+            from pathlib import Path
+            resume_dir = Path(__file__).parent.parent / "resumes"
+            available = sorted(p.stem for p in resume_dir.glob("*.pdf") if p.stem != "generated")
+            if available:
+                console.print("\n  [bold]Available resumes:[/bold]")
+                for i, name in enumerate(available, 1):
+                    console.print(f"     [bold]{i}[/bold]. {name}.pdf")
+                console.print()
+                choice = Prompt.ask("  Select resume", choices=[str(i) for i in range(1, len(available) + 1)], default="1")
+                resume_path = available[int(choice) - 1]
+                app.resume_used = resume_path
+                session_resume = get_session()
+                try:
+                    db_app = session_resume.get(Application, app.id)
+                    if db_app:
+                        db_app.resume_used = resume_path
+                        session_resume.commit()
+                finally:
+                    session_resume.close()
+            else:
+                console.print("  [red]No resume files found.[/red]")
+                return False
 
     cover_letter = generate_cover_letter(
         company=company, role=title, description=description, resume_type=resume_path,

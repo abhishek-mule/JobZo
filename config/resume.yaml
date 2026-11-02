@@ -1,4 +1,9 @@
+default: main
+
 resumes:
+  main:
+    file: resumes/Abhishek_Mule_Resume.pdf
+    active: true
   backend:
     file: resumes/backend_v3.pdf
     metadata: resumes/backend_v3.json

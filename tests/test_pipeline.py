@@ -307,7 +307,8 @@ def test_enqueue_application_creates_pending_request_with_evidence():
     assert req["status"] == PENDING
     assert req["application_id"] == app_id
     assert req["opportunity_score"] > 0
-    assert req["payload"]["resume"]["file"]
+    assert req["payload"]["resume"]["name"] == "Abhishek_Mule_Resume"
+    assert req["payload"]["resume"]["file"] == "resumes/Abhishek_Mule_Resume.pdf"
     assert req["evidence"]["score"]["factors"]
     assert req["evidence"]["trust"]["tier"] in ("verified", "trusted", "unverified")
     assert req["expires_at"] is not None

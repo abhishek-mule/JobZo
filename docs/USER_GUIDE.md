@@ -270,6 +270,7 @@ Edit `resumes/master/profile.yaml` with your details:
 name: Your Name
 current_role: Software Engineer
 years_of_experience: 2
+resume: Abhishek_Mule_Resume
 skills:
   - Python
   - Django
@@ -278,7 +279,9 @@ skills:
   - Docker
 ```
 
-Set your resume files in `resumes/` directory (see `resumes/README.md` for format).
+`resume` names the default resume from `resumes/meta/`. The metadata file
+marked `main: true` is used when no preference is set. Set your resume files in
+`resumes/` and describe each one in `resumes/meta/<name>.yaml`.
 
 ### First run
 

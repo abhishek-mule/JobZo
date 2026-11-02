@@ -13,6 +13,7 @@ DEFAULT_PROFILE = {
     "experience_years": 0,
     "internships": 0,
     "strategy": "balanced",
+    "resume": "",
     "declared_skills": [],
     "desired_role_families": ["software", "backend", "devops"],
     "observed_preferences": {},

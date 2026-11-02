@@ -457,7 +457,12 @@ Resume type: {resume_path}""")
         cover_letter = f"I am excited to apply for the {job.title} role at {job.company}."
 
     if not resume_path:
-        resume_path = "backend_v3.pdf"
+        from resumes.registry import get_registry
+        from services.user_profile import load_profile
+        preferred = load_profile().get("resume") or ""
+        registry = get_registry()
+        meta = registry.get(preferred) if preferred else registry.default_resume()
+        resume_path = meta.name if meta else "Abhishek_Mule_Resume"
 
     if application.status == "drafted":
         transition_status(str(application.id), "ready")

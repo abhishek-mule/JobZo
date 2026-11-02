@@ -1,0 +1,21 @@
+name: Abhishek_Mule_Resume
+file: resumes/Abhishek_Mule_Resume.pdf
+main: true
+skills: [Java, Python, JavaScript, TypeScript, SQL, React, Next.js, Vue.js, React Native, Tailwind CSS, PWA, Spring Boot, Node.js, Express.js, FastAPI, GraphQL, REST APIs, PostgreSQL, MongoDB, MySQL, Redis, Docker, AWS, Git, GitHub Actions, Postman, Linux, JVM Internals, Virtual Threads, System Design, Microservices, Agile]
+projects:
+  - name: vtracer
+    description: "JVM agent for virtual-thread pinning detection"
+    skills: [Java, ByteBuddy, JFR, Maven, JVM Internals, Virtual Threads]
+    domain: systems
+  - name: BillZo
+    description: "Multi-tenant merchant billing and financial recovery SaaS"
+    skills: [TypeScript, Next.js, PostgreSQL, Redis, Razorpay, PWA, React]
+    domain: payments
+  - name: JobZo
+    description: "AI-driven career decision engine"
+    skills: [Python, SQLAlchemy, Alembic, CLI]
+    domain: automation
+domains: [saas, fintech, payments, automation, systems, web]
+experience: junior
+education: "B.Tech in Computer Technology"
+target_roles: [Full Stack Engineer, Full Stack Developer, Software Engineer, Backend Engineer, Frontend Engineer]
