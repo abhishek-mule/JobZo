@@ -197,13 +197,14 @@ def seniority_level(title: str) -> str:
         return "manager"
     if any(w in t for w in ["mid", "intermediate", "level ii", "level 2", "sde ii", "sde 2"]):
         return "mid"
-    return "mid"
+    return "default"
 
 
 SENIORITY_MULTIPLIER: dict[str, float] = {
     "intern": 1.0,
     "junior": 1.0,
     "mid": 0.9,
+    "default": 0.6,
     "senior": 0.3,
     "manager": 0.1,
 }

@@ -61,7 +61,7 @@ from tracker.personal import (
     personal_predict,
     simulate,
 )
-from mission import run_mission
+from mission.engine import run_mission
 from database.models import Contact, Interaction, ApplicationOutcome
 
 logger = logging.getLogger("jobzo")
@@ -75,24 +75,168 @@ setup_logging()
 
 def entry_point():
     if len(sys.argv) <= 1:
-        mission()
+        _morning_assistant()
     else:
         app()
 
 
 @app.callback()
 def main():
-    """JobZo — Your daily job search co-pilot."""
+    """Your daily job hunting assistant. Run [bold]jobzo[/bold] to start."""
 
 
-# ── Mission (default) ────────────────────────────────────────────────────────
+# ── Morning Assistant (default) ─────────────────────────────────────────────
 
-MISSION_NEXT = None
+def _morning_assistant():
+    """Smart daily assistant. Orchestrates sync/collect/score, shows feed."""
+    from datetime import datetime
+    from services.feed import build_feed, print_feed
+    from services.config import Config
 
+    console.clear()
+    now = datetime.utcnow()
+    hour = now.hour
+    greeting = "Good Morning" if hour < 12 else "Good Afternoon" if hour < 18 else "Good Evening"
 
-def mission():
-    """Mission Engine — guided daily workflow dashboard."""
-    run_mission()
+    # Try to get user name from profile
+    user_name = ""
+    try:
+        profile_path = Path(__file__).parent.parent / "resumes" / "master" / "profile.yaml"
+        if profile_path.exists():
+            import yaml
+            with open(profile_path) as f:
+                p = yaml.safe_load(f) or {}
+            user_name = p.get("name", "").split()[0] if p.get("name") else ""
+    except Exception:
+        pass
+
+    console.print(f"[bold cyan]{greeting}{f' {user_name}' if user_name else ''} 👋[/bold cyan]")
+    console.print()
+
+    # ── Profile check (first run) ────────────────────────────────────
+    from services.user_profile import is_complete, load_profile, prompt_setup
+    user_profile = load_profile()
+    if not is_complete(user_profile):
+        user_profile = prompt_setup(console)
+        console.print("  [green]✓[/green] Profile saved")
+        console.print()
+
+    # ── Step 1: Schema check / sync ────────────────────────────────────
+    console.print("  [dim]Checking schema...[/dim]")
+    from database.connection import get_session
+    from sqlalchemy import inspect
+
+    session = get_session()
+    engine = session.get_bind()
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    session.close()
+
+    needs_sync = "poll_runs" not in existing_tables or "hiring_channels" not in existing_tables
+
+    from services.company_registry import sync_companies_from_registry, get_stats
+    stats = get_stats()
+    needs_seed = stats.get("companies", 0) == 0
+
+    if needs_sync or needs_seed:
+        if needs_sync:
+            console.print("  ↳ Schema updated — syncing...")
+        try:
+            result = sync_companies_from_registry()
+            console.print(f"  [green]✓[/green] Registry synced: {result['total']} companies")
+        except Exception:
+            from database.connection import DB_PATH
+            console.print(f"  [yellow]⚠ Database schema out of date.[/yellow]")
+            console.print(f"     Delete [bold]{DB_PATH}[/bold] and try again.")
+            console.print(f"     Or run [green]jobzo doctor[/green] for help.")
+    else:
+        console.print(f"  [green]✓[/green] Registry ready: {stats['active']} active companies")
+
+    # ── Step 2: Smart collect ──────────────────────────────────────────
+    console.print("  [dim]Checking for new opportunities...[/dim]")
+    try:
+        from database.models import PollRun
+        session = get_session()
+        latest_poll = session.query(PollRun.finished_at).order_by(PollRun.finished_at.desc()).first()
+        session.close()
+
+        should_collect = True
+        if latest_poll and latest_poll[0]:
+            hours_since = (datetime.utcnow() - latest_poll[0]).total_seconds() / 3600
+            if hours_since < 1:
+                should_collect = False
+                console.print(f"  [green]✓[/green] Recent poll ({int(hours_since)}m ago) — skipping")
+            elif hours_since < 6:
+                console.print(f"  [dim]  ↳ Last poll {int(hours_since)}h ago — collecting[/dim]")
+            else:
+                console.print(f"  [dim]  ↳ Last poll {int(hours_since)}h ago — collecting[/dim]")
+
+        if should_collect:
+            import asyncio
+            total = asyncio.run(collect_all())
+            from ai.scorer import score_pending_jobs
+            scored = asyncio.run(score_pending_jobs())
+            scored_count = scored.get("scored", 0) if isinstance(scored, dict) else scored
+            console.print(f"  [green]✓[/green] Collected: {total} jobs  Scored: {scored_count} new")
+        else:
+            from ai.scorer import score_pending_jobs
+            import asyncio
+            scored = asyncio.run(score_pending_jobs())
+            scored_count = scored.get("scored", 0) if isinstance(scored, dict) else scored
+            if scored_count:
+                console.print(f"  [green]✓[/green] Scored: {scored_count} new applications")
+
+    except Exception as e:
+        logger.debug("Collection error (non-fatal): %s", e)
+        console.print(f"  [yellow]⚠ Collection skipped: {e}[/yellow]")
+
+    # ── Step 3: Show feed ─────────────────────────────────────────────
+    console.print()
+    items = build_feed()
+    if items:
+        print_feed(items)
+    else:
+        console.print("  [yellow]No recommendations yet. Run [green]jobzo review[/green] to explore.[/yellow]")
+
+    # ── Step 4: Interactive loop ─────────────────────────────────────
+    while True:
+        console.print("  [bold]What next?[/bold]")
+        console.print("  [1] [red]🔥 Apply now[/red] — dig, high priority")
+        console.print("  [2] [green]🇮🇳 Fresher — India[/green] — realistic fresher openings")
+        console.print("  [3] [blue]📋 Review[/blue] — all scored opportunities")
+        console.print("  [4] [magenta]📊 Dashboard[/magenta] — analytics")
+        console.print("  [5] [yellow]🩺 Doctor[/yellow] — system health")
+        console.print("  [6] [cyan]✅ Approval inbox[/cyan] — approve applies & emails")
+        console.print("  [7] [cyan]☀️ Daily brief[/cyan] — 15-minute decision screen")
+        console.print("  [0] [dim]Exit[/dim]")
+        console.print()
+        choice = input("  → ").strip().lower()
+
+        if choice in ("0", "q", "quit", "exit"):
+            console.print("[dim]See you tomorrow 👋[/dim]")
+            break
+        elif choice in ("1", "a", "dig", "apply", "🔥"):
+            _apply_now_screen()
+        elif choice in ("2", "f", "fresher", "🇮🇳"):
+            _fresher_screen(limit=15)
+        elif choice in ("3", "r", "review"):
+            review_opportunities()
+            input("  Press Enter to return...")
+        elif choice in ("4", "d", "dashboard"):
+            _cmd_stats()
+            input("  Press Enter to return...")
+        elif choice in ("5", "doctor"):
+            doctor()
+            input("  Press Enter to return...")
+        elif choice in ("6", "inbox", "approve"):
+            inbox()
+            input("  Press Enter to return...")
+        elif choice in ("7", "brief", "today"):
+            brief()
+            input("  Press Enter to return...")
+        else:
+            console.print("[dim]Type jobzo <command> for anything else[/dim]")
+            input("  Press Enter to return...")
 
 
 def _confidence_label(score: int) -> tuple[str, str]:
@@ -144,26 +288,88 @@ def _missing_skills(job) -> list[str]:
 
 
 def _show_job_card(app, job, idx, total):
-    label, color = _confidence_label(app.score)
     reasons = _parse_notes(app.notes)
-    missing = _missing_skills(job)
+
+    # Opportunity Intelligence
+    from services.opportunity_intelligence import enrich
+    oi = enrich(app.id)
 
     lines = []
     lines.append(f"[bold]{job.company}[/bold] — {job.title}")
     lines.append("")
-    lines.append(f"[{color}]{label}[/{color}]  Score: [bold]{app.score}[/bold]/100")
+
+    # ── Apply Priority (North Star) ──────────────────────────────
+    if oi and "apply_priority" in oi:
+        ap = oi["apply_priority"]
+        ap_color = "green" if ap >= 7 else "yellow" if ap >= 4 else "red"
+        lines.append(f"  [bold]Apply Priority: [{ap_color}]{ap}/10[/{ap_color}][/bold]")
+        # Expected Value stars
+        ev = oi.get("expected_value", {})
+        if ev:
+            lines.append(f"  Expected Value       {ev.get('stars', '')}  ({ev.get('label', '')})")
+            lines.append(f"  Est. time            ~{ev.get('effort_minutes', '?')} min  ({ev.get('difficulty', '')})")
+        for reason in oi.get("reasons", [])[:4]:
+            lines.append(f"    ✓ {reason}")
+        lines.append("")
+
+    # ── Trust (safety gate, evidence-backed) ─────────────────────
+    from services.trust import trust_for_job, TIER_LABELS
+    trust = trust_for_job(job)
+    t_color = {"verified": "green", "trusted": "cyan",
+               "unverified": "yellow", "suspicious": "red"}.get(trust.tier, "white")
+    lines.append(f"  [bold][{t_color}]{trust.emoji} Trust: {trust.score:.0f}/100 ({TIER_LABELS[trust.tier]})[/{t_color}][/bold]")
+    for reason in trust.reasons[:4]:
+        lines.append(f"    ✓ {reason}")
+    for risk in trust.risks[:2]:
+        lines.append(f"    [red]✗ {risk['keyword']}[/red]")
+    if trust.why_not_100:
+        lines.append(f"    [dim]Why not 100: {', '.join(trust.why_not_100[:2])}[/dim]")
     lines.append("")
 
+    # ── Quick signals row ────────────────────────────────────────
+    if oi:
+        fresh = oi.get("freshness", {}).get("label", "")
+        comp = oi.get("competition", {}).get("label", "")
+        gf = oi.get("graduate_friendly", "unknown")
+        gf_label = {"high": "High", "medium": "Med", "low": "Low"}.get(gf, "?")
+        hi = oi.get("hiring_intensity", {}).get("label", "")
+        trend = oi.get("hiring_trend", {})
+        trend_str = f" {trend['symbol']}{trend['pct']}%" if trend.get("pct") else ""
+        resp = oi.get("expected_response_days")
+        resp_str = f"~{resp}d" if resp else "—"
+
+        lines.append(f"  [dim]{fresh}[/dim]  |  Comp: [dim]{comp}[/dim]  |  Grad: [dim]{gf_label}[/dim]")
+        lines.append(f"  Hiring: [dim]{hi}{trend_str}[/dim]  |  Response: [dim]{resp_str}[/dim]")
+
+    # ── Learn ROI ────────────────────────────────────────────────
+    if oi:
+        roi = oi.get("learning_roi", [])
+        if roi:
+            lines.append("")
+            lines.append("  [bold]Learning ROI[/bold]")
+            for r in roi[:3]:
+                lines.append(f"    {r['skill']:<12} {r['roi_stars']}  {r['jobs']} jobs  ~{r['learn_days']}d to learn")
+
+    # ── Company Memory ───────────────────────────────────────────
+    if oi:
+        mem = oi.get("company_memory", {})
+        if mem and mem.get("total_applicants", 0) > 0:
+            lines.append("")
+            ir = mem.get("interview_rate", "?")
+            rr = mem.get("rejection_rate", "?")
+            rd = mem.get("avg_interview_rounds", "?")
+            lines.append(f"  Company History: {mem['total_applicants']} tracked  |  Interview: {ir}%  |  Rounds: ~{rd}")
+
+    # ── Original notes ──────────────────────────────────────────
+    notes_shown = False
     for icon, label_text, detail in reasons:
         if detail:
+            if not notes_shown:
+                lines.append("")
+                lines.append("  [bold]Notes[/bold]")
+                notes_shown = True
             lines.append(f"  {icon} [bold]{label_text}[/bold]")
             lines.append(f"     {detail}")
-
-    if missing:
-        lines.append("")
-        lines.append("  [yellow]⚠[/yellow] [bold]Missing skills[/bold]")
-        for s in missing[:3]:
-            lines.append(f"     • {s}")
 
     lines.append("")
     lines.append(f"  Source: {job.source}")
@@ -270,8 +476,14 @@ Resume type: {resume_path}""")
             else:
                 console.print("  [yellow]Skipped[/yellow]")
         else:
-            console.print("  [yellow]Form not detected. Marked as submitted.[/yellow]")
-            transition_status(str(application.id), "submitted")
+            console.print("  [yellow]Form not detected — nothing was submitted.[/yellow]")
+            console.print("  [dim]Apply manually in the opened page, then confirm below.[/dim]")
+            manual = input("  Did you submit the application manually? [y/N]: ").strip().lower()
+            if manual == "y":
+                transition_status(str(application.id), "submitted")
+                console.print("  [green]✓[/green] Marked submitted by user confirmation.")
+            else:
+                console.print("  [dim]Left as ready; no submission recorded.[/dim]")
     except Exception as e:
         logger.error("Browser automation failed: %s", e)
         console.print(f"  [red]Browser error: {e}[/red]")
@@ -385,7 +597,7 @@ def _show_interviews():
 
 # ── CLI Commands ─────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(hidden=True)
 def sync_companies():
     """Sync the company registry YAML → database."""
     from services.company_registry import sync_companies_from_registry
@@ -402,7 +614,7 @@ def sync_companies():
         raise typer.Exit(code=1)
 
 
-@app.command(name="validate-registry")
+@app.command(name="validate-registry", hidden=True)
 def validate_registry():
     """Validate the company registry YAML files for correctness."""
     from services.company_registry import validate_registry
@@ -435,7 +647,7 @@ def validate_registry():
         console.print("\n[bold green]Registry validation PASSED[/bold green]")
 
 
-@app.command()
+@app.command(hidden=True)
 def benchmark(
     profile: str = typer.Option("", "--profile", "-p", help="Run only a specific profile (by name)"),
 ):
@@ -448,7 +660,7 @@ def benchmark(
     print_results(results)
 
 
-@app.command()
+@app.command(hidden=True)
 def collect(
     keywords: str = typer.Option("", help="Comma-separated keywords to search for"),
 ):
@@ -459,7 +671,7 @@ def collect(
     console.print(f"[green]✓[/green] Collected {total} new jobs")
 
 
-@app.command(name="list")
+@app.command(name="list", hidden=True)
 def list_jobs(
     all: bool = typer.Option(False, "--all", help="Show all jobs instead of top 20"),
 ):
@@ -511,7 +723,7 @@ def list_jobs(
         session.close()
 
 
-@app.command()
+@app.command(hidden=True)
 def rank(
     skills: str = typer.Option("", help="Comma-separated skill keywords"),
     experience: int = typer.Option(1, help="Your years of experience"),
@@ -524,6 +736,422 @@ def rank(
     console.print(f"[green]✓[/green] Scored {total} jobs")
 
     _show_top_applications()
+
+
+@app.command(name="review")
+def review_opportunities():
+    """Review your top opportunities — scored and ranked."""
+    list_jobs(all=False)
+
+
+@app.command(name="dig")
+def dig(
+    fresh: bool = typer.Option(False, "--fresh", help="Only postings from the last 3 days (early-applicant hunting)"),
+    strict: bool = typer.Option(False, "--strict", help="Only verified/trusted postings (exclude unverified)"),
+    min_priority: float = typer.Option(0.0, "--min-priority", help="Minimum Apply Priority (0-10)"),
+    days: int = typer.Option(0, "--days", help="Only jobs posted within N days"),
+    local: bool = typer.Option(False, "--local", help="Only Indian product/startup/service/GCC + fintech/edtech/healthtech companies"),
+    quiet: bool = typer.Option(False, "--quiet", help="Just print the table, no interactive loop"),
+):
+    """High-confidence discovery for your strategy — suitable + trusted + worth-it."""
+    import asyncio
+
+    from services.dig import run_dig, pending_unscored_count
+    from ai.scorer import score_pending_jobs
+
+    pending = pending_unscored_count()
+    if pending:
+        console.print(f"[dim]Scoring {pending} eligible jobs first…[/dim]")
+        try:
+            asyncio.run(score_pending_jobs())
+            console.print("[green]✓[/green] Scored\n")
+        except Exception as e:
+            logger.debug("Scoring before dig failed (non-fatal): %s", e)
+            console.print(f"  [yellow]⚠ Scoring skipped: {e}[/yellow]\n")
+
+    result = run_dig(
+        fresh_only=fresh,
+        strict=strict,
+        min_priority=min_priority,
+        max_days=days or None,
+        local_only=local,
+    )
+
+    console.clear()
+    console.print("[bold yellow]⛏️  DIG — worth-it opportunities for your strategy[/bold yellow]\n")
+    mode = []
+    if fresh:
+        mode.append("fresh (≤3d)")
+    if strict:
+        mode.append("strict (verified/trusted only)")
+    if min_priority:
+        mode.append(f"priority ≥ {min_priority}")
+    if days:
+        mode.append(f"≤ {days}d old")
+    if local:
+        mode.append("local (Indian product/startup/service/GCC/vertical)")
+    if mode:
+        console.print(f"  [dim]Filters: {', '.join(mode)}[/dim]\n")
+
+    if not result.items:
+        console.print("[yellow]No opportunities match right now.[/yellow]")
+        if result.suspicious:
+            console.print(f"  [red]🚨 {len(result.suspicious)} suspicious job{'' if len(result.suspicious) == 1 else 's'} blocked.[/red]")
+        console.print()
+        console.print("[dim]Tip: [green]jobzo dig[/green] without filters shows more.[/dim]")
+        return
+
+    table = Table(box=box.SIMPLE)
+    table.add_column("#", justify="right")
+    table.add_column("Company", style="bold")
+    table.add_column("Role")
+    table.add_column("Priority", justify="right")
+    table.add_column("Match", justify="right")
+    table.add_column("Trust", justify="right")
+    table.add_column("Fresh", justify="right")
+
+    for idx, item in enumerate(result.items, 1):
+        t = item.trust
+        trust_display = f"{t.emoji} {t.score:.0f}"
+        trust_style = {"verified": "green", "trusted": "cyan",
+                       "unverified": "yellow", "suspicious": "red"}.get(t.tier, "white")
+        fresh = item.freshness
+        fresh_display = f"{fresh.get('emoji', '')} {fresh.get('label', '')}"
+        table.add_row(
+            str(idx),
+            item.job.company,
+            item.job.title[:40],
+            f"{item.priority:.1f}",
+            str(item.score),
+            Text(trust_display, style=trust_style),
+            fresh_display,
+        )
+    console.print(table)
+
+    if result.suspicious:
+        console.print(f"\n  [red]🚨 {len(result.suspicious)} suspicious job{'' if len(result.suspicious) == 1 else 's'} blocked[/red]")
+        for s in result.suspicious[:3]:
+            flag = s.trust.risks[0]["keyword"] if s.trust.risks else "scam indicators"
+            console.print(f"     [dim]{s.job.company} — {s.job.title[:40]} ({flag})[/dim]")
+        if len(result.suspicious) > 3:
+            console.print(f"     [dim]… and {len(result.suspicious) - 3} more[/dim]")
+
+    console.print()
+    if quiet:
+        return
+
+    console.print("  [dim]Pick a job to inspect (or [green]0[/green] to exit):[/dim]")
+    choice = input("  → ").strip()
+    if not choice.isdigit() or int(choice) == 0:
+        return
+    idx = int(choice) - 1
+    if idx < 0 or idx >= len(result.items):
+        console.print("[red]Invalid choice[/red]")
+        return
+    item = result.items[idx]
+    _show_job_card(item.app, item.job, idx + 1, len(result.items))
+    console.print()
+    action = input("Action [a]pply / [o]pen / [s]kip / [q]uit: ").strip().lower()
+    if action == "a":
+        _run_apply(item.app, item.job)
+    elif action == "o":
+        import webbrowser
+        webbrowser.open(item.job.url)
+    elif action == "s":
+        console.print("  [blue]Skipped[/blue]")
+
+
+@app.command(name="fresher", hidden=False)
+def fresher(
+    limit: int = typer.Option(30, "--limit", help="How many opportunities to list"),
+    local: bool = typer.Option(True, "--local/--all", help="Indian companies only (default local)"),
+    quiet: bool = typer.Option(False, "--quiet", help="Just print the report, no interactive loop"),
+):
+    """🎓 Indian fresher opportunities — where an interview is realistic.
+
+    Five honest states (confirmed / high / plausible / experienced /
+    insufficient). Explicit experience requirements always beat company
+    hints, and India-visible is enforced separately from classification.
+    """
+    _fresher_screen(limit=limit, local=local, quiet=quiet)
+
+
+def _apply_now_screen() -> bool:
+    """Apply Now screen — dig pipeline with role-family relevance for SWE."""
+    from services.dig import run_dig, pending_unscored_count
+    from services.user_profile import load_profile
+    from services.probability import estimate
+
+    profile = load_profile()
+
+    # Score pending jobs first
+    pending = pending_unscored_count()
+    if pending:
+        import asyncio
+        try:
+            asyncio.run(score_pending_jobs())
+        except Exception as e:
+            logger.debug("Scoring before dig failed (non-fatal): %s", e)
+
+    result = run_dig(fresh_only=True, strict=True, min_priority=4.0, local_only=True)
+
+    console.clear()
+    console.print("[bold red]🔥 APPLY NOW[/bold red]\n")
+
+    if not result.items:
+        console.print("[yellow]No high-priority opportunities right now.[/yellow]")
+        console.print("  [dim]Try: jobzo dig --local --min-priority 3[/dim]\n")
+        input("  Press Enter to return...")
+        return True
+
+    # Re-sort / re-filter by estimate priority + role-family
+    scored = []
+    for item in result.items:
+        try:
+            e = estimate(item.job, profile)
+            est_priority = round(e["score"] / 10.0, 1)
+        except Exception:
+            est_priority = item.priority
+        scored.append((item, est_priority))
+    scored.sort(key=lambda x: -x[1])
+
+    # Show top N with priority >= 4.0
+    top_items = [s[0] for s in scored if s[1] >= 4.0][:15]
+
+    if not top_items:
+        console.print("[yellow]No opportunities meet the role-family + priority threshold.[/yellow]")
+        console.print("  [dim]Try running [green]jobzo dig --local[/green] to see all.[/dim]\n")
+        input("  Press Enter to return...")
+        return True
+
+    table = Table(box=box.SIMPLE)
+    table.add_column("#", justify="right")
+    table.add_column("Company", style="bold")
+    table.add_column("Role")
+    table.add_column("Est Priority", justify="right")
+    table.add_column("Dig Priority", justify="right")
+    table.add_column("Trust", justify="right")
+    table.add_column("Fresh", justify="right")
+
+    for idx, item in enumerate(top_items, 1):
+        est = estimate(item.job, profile)
+        trust = item.trust
+        fresh = item.freshness
+        trust_display = f"{trust.emoji} {trust.score:.0f}" if trust else "— —"
+        fresh_display = f"{fresh.get('emoji', '')} {fresh.get('label', '')}"
+        table.add_row(
+            str(idx),
+            item.job.company,
+            item.job.title[:40],
+            f"{item[1]:.1f}",
+            f"{item.priority:.1f}",
+            Text(trust_display, style={"verified": "green", "trusted": "cyan", "unverified": "yellow", "suspicious": "red"}.get(trust.tier if trust else "none", "white")),
+            fresh_display,
+        )
+    console.print(table)
+
+    console.print()
+    console.print("[dim]Pick a job to act on (or [green]0[/green] back):[/dim]")
+    choice = input("  → ").strip().lower()
+    if choice in ("0", "q", "quit", "exit", ""):
+        return True
+    if not choice.isdigit():
+        return _apply_now_screen()
+    idx = int(choice) - 1
+    if idx < 0 or idx >= len(top_items):
+        return _apply_now_screen()
+    item = top_items[idx]
+    _show_job_card(item.app, item.job, idx + 1, len(top_items))
+    console.print()
+    action = input("Action [a]pply / [o]pen / [s]kip / [b]ack: ").strip().lower()
+    if action == "a":
+        _run_apply(item.app, item.job)
+    elif action == "o":
+        import webbrowser
+        webbrowser.open(item.job.url)
+    elif action == "s":
+        console.print("  [blue]Skipped[/blue]")
+    input("  Press Enter to return...")
+    return _apply_now_screen()
+
+
+def _fresher_screen(limit: int = 30, local: bool = True, quiet: bool = False) -> bool:
+    """Render the fresher report + interactive loop. Returns True to stay in
+    the caller's mission loop, False when the user quits out entirely."""
+    from services.fresher import (
+        FRESHER_CONFIRMED,
+        FRESHER_EXPERIENCED,
+        FRESHER_HIGH,
+        FRESHER_INSUFFICIENT,
+        FRESHER_PLAUSIBLE,
+        fresher_funnel,
+        top_fresher_jobs,
+    )
+
+    f = fresher_funnel(local_only=local)
+    t = f["totals"]
+    e = f["experience"]
+    funnel = f["funnel"]
+
+    console.clear()
+    console.print("[bold yellow]🎓 FRESHER — realistic Indian openings[/bold yellow]\n")
+
+    label = "local" if local else "all companies"
+    console.print(f"[dim]Scope: {label} · {t['collected']} real jobs[/dim]\n")
+
+    console.print("[bold]🇮🇳 INDIA FRESHER FUNNEL[/bold]")
+    console.print(f"  [bold]{funnel['collected']:>4}[/bold] real jobs")
+    console.print(f"    ↓ {funnel['india_visible']:>3} India-visible")
+    console.print(f"    ↓ {funnel['fresher']:>3} fresher / plausible")
+    console.print(f"    ↓ {funnel['profile_match']:>3} match your profile")
+    console.print(f"    ↓ {funnel['high_priority']:>3} high-priority")
+    console.print(f"    ↓ [bold green]{funnel['apply_now']:>3} apply now[/bold green]\n")
+
+    console.print("[bold]Experience classification (across all collected)[/bold]")
+    console.print(f"  [green]🎓 confirmed         {e[FRESHER_CONFIRMED]:>4}[/green]")
+    console.print(f"  [cyan]🟢 high probability   {e[FRESHER_HIGH]:>4}[/cyan]")
+    console.print(f"  [yellow]🟡 plausible          {e[FRESHER_PLAUSIBLE]:>4}[/yellow]")
+    console.print(f"  [red]🔴 experienced        {e[FRESHER_EXPERIENCED]:>4}[/red]")
+    console.print(f"  [dim]⚪ insufficient signal {e[FRESHER_INSUFFICIENT]:>4}[/dim]")
+    console.print()
+
+    top = top_fresher_jobs(limit=limit, local_only=local)
+    hidden_exp = e[FRESHER_EXPERIENCED]
+
+    table = Table(box=box.SIMPLE)
+    table.add_column("#", justify="right")
+    table.add_column("Fresher", justify="center")
+    table.add_column("Company", style="bold")
+    table.add_column("Role")
+    table.add_column("Priority", justify="right")
+    table.add_column("Trust", justify="right")
+    table.add_column("Fresh", justify="right")
+
+    icons = {FRESHER_CONFIRMED: "🎓", FRESHER_HIGH: "🟢", FRESHER_PLAUSIBLE: "🟡",
+             FRESHER_EXPERIENCED: "🔴", FRESHER_INSUFFICIENT: "⚪"}
+    for idx, x in enumerate(top, 1):
+        job, fr = x["job"], x["fresher"]
+        trow = x["trust"]
+        trust_style = {"verified": "green", "trusted": "cyan",
+                       "unverified": "yellow", "suspicious": "red"}.get(trow.tier, "white")
+        fresh = x["freshness"]
+        fresh_display = f"{fresh.get('emoji', '')} {fresh.get('label', '')}"
+        table.add_row(
+            str(idx),
+            f"{icons[fr.status]} {fr.status[:4]}",
+            job.company,
+            job.title[:40],
+            f"{x['priority']:.1f}",
+            Text(f"{trow.emoji} {trow.score:.0f}", style=trust_style),
+            fresh_display,
+        )
+    console.print(table)
+
+    if hidden_exp:
+        console.print(f"\n  [dim]🚫 HIDDEN: {hidden_exp} experienced roles — explicit 2+ yrs / senior "
+                      f"titles. Use [green]jobzo dig[/green] for everything.[/dim]")
+    console.print()
+
+    if quiet:
+        return True
+
+    while True:
+        console.print("[dim]Pick a job (or [green]0[/green] back / [q] quit):[/dim]")
+        choice = input("  → ").strip().lower()
+        if choice in ("0", "q", "quit", "exit", ""):
+            return choice not in ("q", "quit", "exit")
+        if not choice.isdigit():
+            continue
+        idx = int(choice) - 1
+        if idx < 0 or idx >= len(top):
+            console.print("[red]Invalid choice[/red]")
+            continue
+        x = top[idx]
+        _show_fresher_card(x)
+        console.print()
+        action = input("Action [a]pply / [o]pen / [s]kip / [b]ack: ").strip().lower()
+        if action == "a":
+            _run_apply(x["job"].application if hasattr(x["job"], "application") else None, x["job"])
+        elif action == "o":
+            import webbrowser
+            webbrowser.open(x["job"].url)
+        elif action == "s":
+            console.print("  [blue]Skipped[/blue]")
+        input("  Press Enter to return to fresher opportunities...")
+        console.clear()
+        return _fresher_screen(limit=limit, local=local, quiet=True) and True
+
+
+def _show_fresher_card(x: dict) -> None:
+    """Auditable job card: fresher evidence, priority, trust, eligibility."""
+    job, fr = x["job"], x["fresher"]
+    trust = x["trust"]
+    fresh = x["freshness"]
+
+    console.clear()
+    console.print(f"[bold]{job.company} — {job.title}[/bold]")
+    console.print(f"  [dim]{job.location or '—'} · {job.url}[/dim]\n")
+
+    pct = int(fr.prob * 100)
+    prob_color = "green" if fr.prob >= 0.8 else "yellow" if fr.prob >= 0.5 else "red"
+    console.print(f"  Fresher probability: [bold {prob_color}]{pct}%[/bold {prob_color}]  "
+                  f"Status: {fr.status}")
+    console.print(f"  Apply priority: [bold]{x['priority']:.1f}/10[/bold]   "
+                  f"Trust: {trust.emoji} {trust.score:.0f} ({trust.tier})   "
+                  f"Fresh: {fresh.get('label', '?')}")
+
+    if job.eligible is True:
+        console.print("  [green]✓[/green] Passes eligibility")
+    elif job.eligible is False:
+        console.print("  [red]✗[/red] Blocked by eligibility engine")
+    else:
+        console.print("  [dim]? Not yet scored by eligibility[/dim]")
+
+    print()
+    for ev in fr.evidence:
+        console.print(f"  [green]{ev}[/green]")
+    for neg in fr.negatives:
+        console.print(f"  [red]{neg}[/red]")
+    if not fr.evidence and not fr.negatives:
+        console.print("  [dim]? No fresher evidence in JD[/dim]")
+    print()
+
+
+@app.command(name="search", hidden=True)
+def search_jobs(
+    query: str = typer.Argument("", help="Free-text search across job titles and companies"),
+    min_score: int = typer.Option(0, "--min-score", "-s", help="Minimum score filter"),
+    location: str = typer.Option("", "--location", "-l", help="Filter by location"),
+):
+    """Search collected jobs by keyword, score, or location."""
+    from sqlalchemy import or_ as sql_or
+    session = get_session()
+    try:
+        q = session.query(Job).options(joinedload(Job.application)).filter(Job.is_active == True)
+        if query:
+            like = f"%{query}%"
+            q = q.filter(
+                sql_or(Job.title.ilike(like), Job.company.ilike(like), Job.description.ilike(like))
+            )
+        if location:
+            q = q.filter(Job.location.ilike(f"%{location}%"))
+        if min_score:
+            q = q.join(Application).filter(Application.score >= min_score)
+        q = q.order_by(Job.created_at.desc()).limit(30)
+        jobs = q.all()
+        if not jobs:
+            console.print("[yellow]No jobs match your search[/yellow]")
+            return
+        table = Table(title=f"Search Results: {query or 'all'}")
+        table.add_column("#"); table.add_column("Company"); table.add_column("Title")
+        table.add_column("Location"); table.add_column("Score"); table.add_column("Status")
+        for idx, job in enumerate(jobs, 1):
+            app = job.application; score = str(app.score) if app else "—"
+            status = app.status if app else "collected"
+            table.add_row(str(idx), job.company, job.title[:45], job.location or "", score, status)
+        console.print(table)
+    finally:
+        session.close()
 
 
 @app.command()
@@ -587,6 +1215,18 @@ def apply(
             console.print(f"  Score: {application.score}/100")
             console.print(f"  Strategy: {application.strategy}")
 
+            # Check platform quota
+            from services.quotas import is_exhausted, quota_usage
+            src = job.source or ""
+            if is_exhausted(src):
+                console.print(f"  [red]⚠ {src} limit reached this week[/red]")
+                alt = [q for q in quota_usage() if not q["exhausted"] and q["limit"] is not None]
+                if alt:
+                    names = ", ".join(a["platform"] for a in alt[:3])
+                    console.print(f"  [dim]   Try: {names}[/dim]")
+                console.print("  [yellow]Skipping — apply from other sources[/yellow]")
+                continue
+
             resume_path = application.resume_used or ""
             cover_letter = ""
 
@@ -647,6 +1287,8 @@ def apply(
                         if confirmed:
                             transition_status(str(application.id), "submitted")
                             submitted = True
+                            from services.quotas import record_submission
+                            record_submission(job.source or "manual", job.company, job.title)
                             console.print(f"  [green]✓[/green] Marked as submitted")
                         else:
                             console.print("  [yellow]Skipped[/yellow]")
@@ -654,6 +1296,8 @@ def apply(
                         console.print("  [yellow]Form not detected. Apply manually.[/yellow]")
                         transition_status(str(application.id), "submitted")
                         submitted = True
+                        from services.quotas import record_submission
+                        record_submission(job.source or "manual", job.company, job.title)
                 except Exception as e:
                     logger.error("Browser automation failed: %s", e)
                     console.print(f"  [red]Browser error: {e}[/red]")
@@ -678,7 +1322,7 @@ def apply(
         session.close()
 
 
-@app.command()
+@app.command(hidden=True)
 def export(
     fmt: str = typer.Argument("csv", help="Export format (csv)"),
     out: str = typer.Option("applications.csv", "--out", "-o", help="Output file path"),
@@ -748,7 +1392,7 @@ def _fetch_with_playwright(url: str, timeout: int) -> str:
     return asyncio.run(_get())
 
 
-@app.command()
+@app.command(hidden=True)
 def import_url(
     url: str = typer.Argument(..., help="Job posting URL to import"),
     title: str = typer.Option("", "--title", "-t", help="Job title (auto-detected if empty)"),
@@ -795,7 +1439,7 @@ def import_url(
     console.print("\nRun [bold]jobzo collect[/bold] to process this job.")
 
 
-@app.command()
+@app.command(hidden=True)
 def track(
     app_id: str = typer.Argument(None, help="Application ID to update"),
     status: str = typer.Option("", "--status", "-s", help="New status: submitted, interview, rejected, offer"),
@@ -902,7 +1546,7 @@ def track(
         console.print(task_table)
 
 
-@app.command()
+@app.command(hidden=True)
 def task(
     complete: str = typer.Option("", "--done", help="Task ID to mark complete"),
 ):
@@ -929,7 +1573,7 @@ def task(
     console.print(table)
 
 
-@app.command()
+@app.command(hidden=True)
 def daily(
     skills: str = typer.Option("", help="Comma-separated skill keywords"),
     experience: int = typer.Option(1, help="Your years of experience"),
@@ -953,7 +1597,7 @@ def daily(
     apply(app_id=None, daily=True)
 
 
-@app.command()
+@app.command(hidden=True)
 def skill_gap():
     """Analyze skill demand from collected jobs."""
     session = get_session()
@@ -1016,7 +1660,7 @@ def skill_gap():
             console.print(f"  • {s.capitalize()}")
 
 
-@app.command()
+@app.command(hidden=True)
 def sync(
     skills: str = typer.Option("", help="Comma-separated skill keywords"),
     experience: int = typer.Option(1, help="Your years of experience"),
@@ -1073,7 +1717,7 @@ def sync(
     console.print(f"\n[green]✓[/green] Sync complete. Run [bold]jobzo[/bold] to see your feed.")
 
 
-@app.command()
+@app.command(hidden=True)
 def fit(
     job_id: str = typer.Argument(..., help="Job ID to analyze"),
 ):
@@ -1114,7 +1758,7 @@ def fit(
                     console.print(f"\n[yellow]{cf.recommendation}[/yellow]")
 
 
-@app.command()
+@app.command(hidden=True)
 def roadmap(
     source: str = typer.Option("recommended", help="Source: recommended (default), all, applied"),
     company: str = typer.Option("", help="Filter by company name"),
@@ -1129,11 +1773,8 @@ def roadmap(
     console.print(Panel.fit(road.format_text(max_skills=max_skills), box=box.ROUNDED, padding=(1, 2)))
 
 
-@app.command()
-def prepare_for_interview(
-    job_id: str = typer.Argument(..., help="Job ID to prepare for"),
-):
-    """Generate interview preparation plan for a specific job."""
+def _cmd_interview(job_id: str):
+    """Generate and display interview prep plan."""
     session = get_session()
     try:
         job = session.get(Job, job_id)
@@ -1149,6 +1790,22 @@ def prepare_for_interview(
 
 
 @app.command()
+def interview(
+    job_id: str = typer.Argument(..., help="Job ID to prepare for"),
+):
+    """Generate interview preparation plan for a specific job."""
+    _cmd_interview(job_id)
+
+
+@app.command(hidden=True)
+def prepare_for_interview(
+    job_id: str = typer.Argument(..., help="Job ID to prepare for"),
+):
+    """Alias for interview."""
+    _cmd_interview(job_id)
+
+
+@app.command(hidden=True)
 def quality(
     job_id: str = typer.Argument(..., help="Job ID to analyze"),
     resume: str = typer.Option("", help="Resume variant to evaluate"),
@@ -1191,7 +1848,7 @@ def quality(
         console.print(f"\n[yellow]If you add '{', '.join(qs.missing_skills[:3])}', probability improves by ~{min(len(qs.missing_skills) * 3, 15)}%[/yellow]")
 
 
-@app.command()
+@app.command(hidden=True)
 def verify(
     application_id: str = typer.Argument(..., help="Application ID"),
     ats_id: str = typer.Option("", help="ATS application ID"),
@@ -1348,7 +2005,7 @@ def reach(
         console.print("[yellow]Reach-out skipped[/yellow]")
 
 
-@app.command(name="contact-interactions")
+@app.command(name="contact-interactions", hidden=True)
 def contact_interactions(
     contact_id: str = typer.Argument(..., help="Contact ID"),
 ):
@@ -1390,7 +2047,7 @@ def contact_interactions(
     console.print(table)
 
 
-@app.command()
+@app.command(hidden=True)
 def decide(
     application_id: str = typer.Argument(..., help="Application ID"),
     simulate_resume: str = typer.Option("", "--simulate-resume", help="Simulate a different resume"),
@@ -1536,7 +2193,7 @@ def outcome(
     console.print(Panel.fit("\n".join(lines), box=box.ROUNDED, padding=(1, 2), title="Application Outcome"))
 
 
-@app.command()
+@app.command(hidden=True)
 def personal(
     view: str = typer.Option("weights", "--view", "-v", help="View: weights, resumes, companies, ats, timing, skills, all"),
     company: str = typer.Option("", "--company", help="Filter company intelligence"),
@@ -1639,7 +2296,7 @@ def personal(
             console.print("[yellow]No skill data yet. Apply to more jobs to see patterns.[/yellow]")
 
 
-@app.command()
+@app.command(hidden=True)
 def outreach(
     detail: str = typer.Option("", "--detail", "-d", help="Show detail: templates, companies, timing"),
 ):
@@ -1862,9 +2519,105 @@ def _show_top_applications():
         session.close()
 
 
+@app.command(hidden=True)
+def priorities():
+    """Show companies ranked by hiring weight (drive poll priority)."""
+    from services.hiring_weight import rank_by_weight
+    from rich.table import Table
+
+    ranked = rank_by_weight(limit=30)
+    if not ranked:
+        console.print("[yellow]No data yet — run jobzo collect first[/yellow]")
+        return
+
+    table = Table(title="Hiring Priority Queue", box=box.SIMPLE)
+    table.add_column("#")
+    table.add_column("Company", style="bold")
+    table.add_column("Category")
+    table.add_column("Weight", justify="right")
+    table.add_column("Interval", justify="right")
+    table.add_column("Label")
+
+    for i, entry in enumerate(ranked, 1):
+        table.add_row(
+            str(i), entry["name"],
+            entry["category"].replace("_", " ").title(),
+            str(entry["weight"]), f"{entry['interval_h']}h", entry["label"],
+        )
+
+    console.print(table)
+    console.print("\n[dim]Higher weight = more frequent polling. Derived from recent job volume + success rate.[/dim]")
+
+
+@app.command(hidden=True)
+def feed():
+    """Opportunity Feed — today's prioritized decisions."""
+    from services.feed import build_feed, print_feed
+    items = build_feed()
+    if not items:
+        console.print("[yellow]No opportunities to show. Run [green]jobzo collect[/green] then [green]jobzo review[/green] first.[/yellow]")
+        return
+    print_feed(items)
+
+
+def _cmd_stats():
+    """Internal: print the stats dashboard."""
+    from services.dashboard import founder_dashboard, print_dashboard
+    data = founder_dashboard()
+    print_dashboard(data)
+
+
 @app.command()
+def dashboard():
+    """Founder analytics — pipeline health, ecosystem mix, portfolio risk."""
+    _cmd_stats()
+
+
+@app.command(hidden=True)
 def stats():
-    """Show application statistics."""
+    """Alias for dashboard."""
+    _cmd_stats()
+
+
+@app.command(hidden=True)
+def lab(
+    action: str = typer.Argument("benchmark", help="benchmark | experiment | simulate"),
+    profile: str = typer.Option("", "--profile", "-p", help="Benchmark profile name"),
+):
+    """Research lab: benchmarks, experiments, and simulations."""
+    if action == "benchmark":
+        from benchmark.runner import run_all, print_results
+        console.print("[bold cyan]JobZo Lab[/bold cyan] — Running benchmarks...\n")
+        profile_names = [p.strip() for p in profile.split(",") if p.strip()] if profile else None
+        results = run_all(profile_names)
+        print_results(results)
+    elif action == "experiment":
+        try:
+            from domain.experiment import create_default_experiments, ExperimentService
+            exps = create_default_experiments()
+            console.print(f"[bold cyan]JobZo Lab[/bold cyan] — {len(exps)} experiments registered\n")
+            for e in exps:
+                status = "active" if e.is_active else "inactive"
+                console.print(f"  {e.name:40s} {status}")
+            console.print("\nRun [bold]python3 -m pytest tests/test_experiment.py -v[/bold] to test.")
+        except ImportError as e:
+            console.print(f"[yellow]Experiment module not available: {e}[/yellow]")
+    elif action == "simulate":
+        try:
+            from domain.simulation import compare_scenarios
+            console.print("[bold cyan]JobZo Lab[/bold cyan] — Scenario Simulation\n")
+            result = compare_scenarios()
+            console.print(result)
+        except ImportError as e:
+            console.print(f"[yellow]Simulation module not available: {e}[/yellow]")
+    else:
+        console.print(f"[red]Unknown lab action: {action}[/red]")
+        console.print("Usage: jobzo lab [benchmark|experiment|simulate]")
+
+
+@app.command(hidden=True)
+def form_stats():
+    """Application form autofill statistics."""
     import json
     from pathlib import Path
 
@@ -1955,10 +2708,522 @@ def stats():
             f"  [bold]Best Source[/bold]          {max(source_counts, key=source_counts.get) if source_counts else '—'}",
             "",
         ]),
-        title="[bold cyan]JobZo Statistics[/bold cyan]",
+        title="[bold cyan]Application Form Stats[/bold cyan]",
         border_style="cyan",
     )
     console.print(panel)
+
+
+# ── Human-approved action pipeline ──────────────────────────────────────────
+
+def _approval_card(req, idx: int, total: int):
+    """Render one approval request as an auditable card."""
+    payload = req.get("payload", {})
+    evidence = req.get("evidence", {})
+    score = evidence.get("score", {})
+    trust = evidence.get("trust", {})
+    fresher = evidence.get("fresher", {})
+    contact = evidence.get("contact")
+
+    lines = [
+        f"[bold]{req.get('title', '')}[/bold]",
+        f"[dim]{req.get('subtitle', '')} · {req.get('kind', '')}[/dim]",
+        "",
+    ]
+    if score:
+        total_score = score.get("total", 0)
+        color = "green" if total_score >= 85 else "yellow" if total_score >= 70 else "red"
+        lines.append(
+            f"  Opportunity [{color}]{total_score}/100[/{color}] "
+            f"({score.get('label', '')}) · Effort ~{req.get('effort_minutes') or '?'} min"
+        )
+        lines.append(
+            f"  Trust {trust.get('score', 0):.0f}/100 ({trust.get('tier', '?')}) · "
+            f"Fresher {fresher.get('status', '?')} ({int((fresher.get('probability') or 0) * 100)}%)"
+        )
+        lines.append("")
+        lines.append("  [bold]Why[/bold]")
+        for factor in score.get("factors", [])[:5]:
+            lines.append(
+                f"    {factor.get('points', 0):>4.1f}/{factor.get('weight', 0)}  "
+                f"{factor.get('label', '')} — {(factor.get('reasons') or [''])[0][:80]}"
+            )
+        if score.get("hard_rejects"):
+            lines.append("")
+            lines.append("  [red]Hard reject: " + "; ".join(score["hard_rejects"]) + "[/red]")
+        if score.get("warnings"):
+            lines.append("  [yellow]Warnings: " + "; ".join(score["warnings"][:3]) + "[/yellow]")
+
+    if contact:
+        lines.append("")
+        lines.append(
+            f"  Contact: {contact.get('name', '')} ({contact.get('role', '')}) · "
+            f"{contact.get('status', '')} {int((contact.get('confidence') or 0) * 100)}%"
+        )
+        lines.append(f"  Email: {contact.get('email', '')}")
+
+    if req.get("kind") == "application":
+        resume = payload.get("resume", {})
+        lines.append("")
+        lines.append(f"  Resume: {resume.get('name', '—')} ({resume.get('file', '—')})")
+        lines.append(f"  Channel: {payload.get('application_channel', '—')} · Source: {payload.get('source', '—')}")
+        if payload.get("url"):
+            lines.append(f"  Job: {payload['url']}")
+    else:
+        lines.append("")
+        lines.append(f"  [bold]To:[/bold] {payload.get('to', '')}")
+        lines.append(f"  [bold]Subject:[/bold] {payload.get('subject', '')}")
+        lines.append("")
+        for line in (payload.get("body", "") or "").splitlines():
+            lines.append(f"  {line}")
+
+    console.print(Panel.fit(
+        "\n".join(lines),
+        title=f"[bold cyan]{idx}/{total} · {req.get('id', '')[:8]}[/bold cyan]",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+
+
+def _execute_approved(req):
+    """Execute an approved request. Applications still use the browser flow."""
+    from services.approval import KIND_APPLICATION, mark_executed
+    from services.cold_outreach import send_draft
+
+    if req.get("kind") == KIND_APPLICATION:
+        session = get_session()
+        try:
+            app = session.query(Application).options(
+                joinedload(Application.job)
+            ).filter(Application.id == req.get("application_id")).first()
+            job = app.job if app else None
+        finally:
+            session.close()
+        if app is None or job is None:
+            console.print("[red]Application or job not found.[/red]")
+            return False
+
+        console.print("\n  [bold]Opening the application flow…[/bold]")
+        _run_apply(app, job)
+
+        session = get_session()
+        try:
+            status = session.query(Application.status).filter(
+                Application.id == app.id
+            ).scalar()
+        finally:
+            session.close()
+        if status == "submitted":
+            mark_executed(req["id"], "Application submitted")
+            console.print("  [green]✓[/green] Submission recorded; follow-ups scheduled.")
+            return True
+        console.print("  [yellow]Not marked submitted — apply manually if the form blocked automation.[/yellow]")
+        return False
+
+    draft_id = req.get("outreach_draft_id")
+    if not draft_id:
+        console.print("[red]No draft linked to this approval.[/red]")
+        return False
+    result = send_draft(draft_id)
+    if not result.get("ok"):
+        console.print(f"  [red]Send failed: {result.get('error')}[/red]")
+        return False
+    if result.get("dry_run"):
+        console.print(f"  [yellow]Saved to outbox (not sent):[/yellow] {result.get('path')}")
+        console.print("  [dim]Configure JOBZO_SMTP_* to send for real.[/dim]")
+    else:
+        console.print(f"  [green]✓ Email sent via {result.get('transport')}[/green]")
+    return True
+
+
+@app.command()
+def brief(
+    queue: bool = typer.Option(False, "--queue", help="Queue top opportunities before showing the brief"),
+    limit: int = typer.Option(5, "--limit", help="How many opportunities to queue"),
+    min_priority: float = typer.Option(5.0, "--min-priority", help="Minimum dig priority to queue"),
+    local: bool = typer.Option(False, "--local", help="Only Indian/local companies"),
+):
+    """15-minute daily briefing: decisions, not job-portal browsing."""
+    from services.brief import build_brief, format_brief_text
+    from services.approval import enqueue_top_applications
+
+    if queue:
+        result = enqueue_top_applications(
+            limit=limit, min_priority=min_priority, local_only=local,
+        )
+        console.print(f"[green]✓[/green] New: {len(result['queued'])} · "
+                      f"already queued: {len(result['existing'])} · "
+                      f"auto-rejected {len(result['rejected'])} · skipped {len(result['skipped'])}")
+        console.print()
+
+    data = build_brief()
+    console.print(Panel.fit(
+        format_brief_text(data),
+        title="[bold cyan]JOBZO DAILY BRIEF[/bold cyan]",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+    console.print("\n  [dim]Next: jobzo inbox · jobzo contacts · jobzo followups[/dim]")
+
+
+@app.command(name="queue")
+def queue_opportunities(
+    limit: int = typer.Option(5, "--limit", help="How many applications to queue"),
+    min_priority: float = typer.Option(5.0, "--min-priority", help="Minimum dig priority"),
+    local: bool = typer.Option(False, "--local", help="Only Indian/local companies"),
+    fresh: bool = typer.Option(False, "--fresh", help="Only postings from the last 3 days"),
+):
+    """Queue the best current opportunities for human approval."""
+    from services.approval import enqueue_top_applications
+
+    result = enqueue_top_applications(
+        limit=limit, min_priority=min_priority, local_only=local, fresh_only=fresh,
+    )
+    console.print(f"[green]✓[/green] Candidates: {result['candidates']} · "
+                  f"New: {len(result['queued'])} · Already queued: {len(result['existing'])} · "
+                  f"Auto-rejected: {len(result['rejected'])}")
+    if result["queued"]:
+        table = Table(box=box.SIMPLE)
+        table.add_column("Company")
+        table.add_column("Role")
+        table.add_column("Score", justify="right")
+        table.add_column("Effort", justify="right")
+        for req in result["queued"]:
+            table.add_row(
+                req.get("payload", {}).get("company", ""),
+                req.get("payload", {}).get("role", "")[:40],
+                f"{req.get('opportunity_score') or 0:.0f}",
+                f"{req.get('effort_minutes') or '?'} min",
+            )
+        console.print(table)
+    for item in result["rejected"][:5]:
+        console.print(f"  [red]✗[/red] {item['title']}: [dim]{item['reason']}[/dim]")
+    console.print("\n  [dim]Review with: jobzo inbox[/dim]")
+
+
+@app.command()
+def inbox(
+    limit: int = typer.Option(20, "--limit", help="Maximum requests to review"),
+):
+    """Review pending actions. Approve, reject, edit, or skip — nothing sends first."""
+    from services.approval import (
+        PENDING, decide_request, list_requests,
+    )
+    from services.cold_outreach import update_draft
+
+    pending = list_requests(PENDING, limit=limit)
+    if not pending:
+        console.print("[green]No pending approvals.[/green]")
+        console.print("  [dim]Run: jobzo brief --queue[/dim]")
+        return
+
+    for idx, req in enumerate(pending, 1):
+        _approval_card(req, idx, len(pending))
+        console.print()
+        action = input("Action [a]pprove / [r]eject / [e]dit / [s]kip / [q]uit: ").strip().lower()
+
+        if action in ("q", "quit"):
+            break
+        if action in ("s", "skip", ""):
+            continue
+        if action == "e":
+            if req.get("kind") == "application":
+                console.print("  [yellow]Application answers are edited in the browser flow.[/yellow]")
+                continue
+            draft = update_draft(
+                req.get("outreach_draft_id"),
+                subject=typer.prompt("Subject", default=req.get("payload", {}).get("subject", "")),
+                body=typer.edit(req.get("payload", {}).get("body", "")),
+            )
+            if draft.get("ok"):
+                console.print("  [green]✓[/green] Draft updated — approval reset for safety.")
+            else:
+                console.print(f"  [red]{draft.get('error')}[/red]")
+            continue
+
+        if action == "r":
+            note = typer.prompt("Reason (optional)", default="")
+            result = decide_request(req["id"], "rejected", note)
+            if result.get("ok"):
+                console.print("  [blue]Rejected[/blue]")
+            else:
+                console.print(f"  [red]{result.get('error')}[/red]")
+            continue
+
+        if action == "a":
+            result = decide_request(req["id"], "approved")
+            if not result.get("ok"):
+                console.print(f"  [red]{result.get('error')}[/red]")
+                continue
+            console.print("  [green]✓ Approved[/green]")
+            _execute_approved(req)
+            continue
+
+        console.print("[dim]Unknown action.[/dim]")
+
+
+@app.command()
+def approve(
+    request_id: str = typer.Argument(..., help="Approval request ID"),
+):
+    """Approve one request by ID, then execute it."""
+    from services.approval import decide_request, get_request
+    result = decide_request(request_id, "approved")
+    if not result.get("ok"):
+        console.print(f"[red]{result.get('error')}[/red]")
+        return
+    req = get_request(request_id)
+    console.print("[green]✓ Approved[/green]")
+    _execute_approved(req)
+
+
+@app.command()
+def reject(
+    request_id: str = typer.Argument(..., help="Approval request ID"),
+    note: str = typer.Option("", "--note", help="Reason for rejection"),
+):
+    """Reject one request by ID."""
+    from services.approval import decide_request
+    result = decide_request(request_id, "rejected", note)
+    if result.get("ok"):
+        console.print("[blue]Rejected[/blue]")
+    else:
+        console.print(f"[red]{result.get('error')}[/red]")
+
+
+@app.command(name="contacts")
+def contacts(
+    company: str = typer.Argument("", help="Filter by company"),
+    min_confidence: float = typer.Option(0.0, "--min-confidence", help="Minimum confidence 0-1"),
+):
+    """List contacts with separate identity/domain/mailbox/relevance evidence."""
+    from services.contacts import list_contacts
+    records = list_contacts(company, min_confidence=min_confidence)
+    if not records:
+        console.print("[yellow]No contacts yet.[/yellow]")
+        console.print("  Add one: jobzo contact-add --company Acme --name 'Jane Doe' --role 'Talent Acquisition' "
+                      "--email jane@acme.com --source-url https://acme.com/careers")
+        return
+
+    table = Table(box=box.SIMPLE)
+    table.add_column("Company")
+    table.add_column("Name")
+    table.add_column("Role")
+    table.add_column("Email")
+    table.add_column("Status")
+    table.add_column("Conf", justify="right")
+    table.add_column("Verified levels")
+    for r in records:
+        table.add_row(
+            r.contact.company,
+            r.contact.name,
+            r.contact.role[:24],
+            r.contact.email or "—",
+            Text(r.status, style={"verified": "green", "verified_domain": "cyan",
+                                  "risky": "red", "unverified": "yellow"}.get(r.status, "white")),
+            f"{r.confidence:.0%}",
+            ", ".join(r.levels) or "—",
+        )
+    console.print(table)
+
+
+@app.command(name="contact-add")
+def contact_add(
+    company: str = typer.Option(..., "--company", help="Company name"),
+    name: str = typer.Option(..., "--name", help="Person or team name"),
+    role: str = typer.Option("", "--role", help="Title, e.g. Talent Acquisition"),
+    email: str = typer.Option("", "--email", help="Public email address"),
+    linkedin: str = typer.Option("", "--linkedin", help="Public LinkedIn profile URL"),
+    source_url: str = typer.Option("", "--source-url", help="Where this contact is publicly listed"),
+    evidence_kind: str = typer.Option("user_confirmed", "--evidence-kind",
+                                      help="official_careers_page | official_website | linkedin_profile | user_confirmed"),
+):
+    """Add a contact with evidence. Never guesses an email address."""
+    from services.contacts import save_contact
+    if not email and not linkedin:
+        console.print("[red]Provide a public email or LinkedIn URL.[/red]")
+        return
+    record = save_contact(
+        company=company, name=name, role=role, email=email, linkedin=linkedin,
+        source="manual", evidence_kind=evidence_kind,
+        source_url=source_url or linkedin,
+    )
+    color = "green" if record.is_verified else "yellow"
+    console.print(f"[{color}]{record.status}[/{color}] · confidence {record.confidence:.0%}")
+    console.print(f"  Verified: {', '.join(record.levels) or 'nothing yet'}")
+    if not record.is_verified:
+        console.print("  [dim]Add an official source URL that ties the person to the company domain.[/dim]")
+
+
+@app.command(name="contact-discover")
+def contact_discover(
+    company: str = typer.Argument(..., help="Company name"),
+    careers_url: str = typer.Option("", "--url", help="Official careers page URL"),
+):
+    """Discover publicly listed emails on official company pages only."""
+    from services.contacts import discover_public_contacts
+    console.print(f"[dim]Fetching official pages for {company}…[/dim]")
+    result = discover_public_contacts(company, careers_url=careers_url)
+    console.print(f"Domain: {result['domain'] or '—'} · pages: {result['pages_fetched']} · "
+                  f"emails: {result['emails_found']}")
+    for c in result["contacts"]:
+        console.print(f"  • {c['email']} — {c['name']} ({c['status']}, {c['confidence']:.0%})")
+    if not result["contacts"]:
+        console.print("  [yellow]No public emails found. Do not guess one.[/yellow]")
+        console.print("  [dim]Find the recruiter on LinkedIn, then add the profile URL with jobzo contact-add.[/dim]")
+
+
+@app.command(name="cold-email")
+def cold_email(
+    application_id: str = typer.Argument(..., help="Application ID"),
+    contact_id: str = typer.Option("", "--contact", help="Specific contact ID"),
+    kind: str = typer.Option("initial", "--kind", help="initial | followup | final_followup"),
+):
+    """Draft a personalized email to a verified contact and queue it for approval."""
+    from services.cold_outreach import draft_outreach
+    result = draft_outreach(application_id=application_id, contact_id=contact_id or None, kind=kind)
+    if not result.ok:
+        console.print(f"[red]{result.error}[/red]")
+        return
+    draft = result.draft or {}
+    console.print(Panel.fit(
+        f"[bold]To:[/bold] {draft.get('contact_name')} <{draft.get('contact_email')}>\n"
+        f"[bold]Subject:[/bold] {draft.get('subject')}\n\n{draft.get('body')}",
+        title="[bold cyan]OUTREACH DRAFT[/bold cyan]",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    ))
+    console.print(f"  Approval: {draft.get('approval_request_id', '')[:8]} · "
+                  f"Review with [green]jobzo inbox[/green]")
+
+
+@app.command(name="drafts")
+def drafts(
+    status: str = typer.Option("", "--status", help="pending_approval | approved | outbox | sent"),
+    limit: int = typer.Option(20, "--limit", help="Maximum drafts"),
+):
+    """List cold-email and follow-up drafts."""
+    from services.cold_outreach import list_drafts
+    rows = list_drafts(status=status, limit=limit)
+    if not rows:
+        console.print("[yellow]No drafts.[/yellow]")
+        return
+    table = Table(box=box.SIMPLE)
+    table.add_column("ID")
+    table.add_column("Company")
+    table.add_column("Contact")
+    table.add_column("Kind")
+    table.add_column("Status")
+    table.add_column("Subject")
+    for d in rows:
+        table.add_row(d["id"][:8], d["company"], d["contact_name"], d["kind"],
+                      d["status"], d["subject"][:46])
+    console.print(table)
+
+
+@app.command(name="email-send")
+def email_send(
+    draft_id: str = typer.Argument(..., help="Draft ID"),
+    approve: bool = typer.Option(False, "--approve", help="Approve the linked request first (explicit)"),
+):
+    """Send an approved draft. Without SMTP this writes a local outbox .eml."""
+    from services.approval import decide_request
+    from services.cold_outreach import get_draft, send_draft
+    draft = get_draft(draft_id)
+    if draft is None:
+        console.print("[red]Draft not found.[/red]")
+        return
+    if approve and draft.get("approval_request_id"):
+        result = decide_request(draft["approval_request_id"], "approved")
+        if not result.get("ok"):
+            console.print(f"[red]{result.get('error')}[/red]")
+            return
+    result = send_draft(draft_id)
+    if not result.get("ok"):
+        console.print(f"[red]{result.get('error')}[/red]")
+        return
+    if result.get("dry_run"):
+        console.print(f"[yellow]Saved to outbox (not sent):[/yellow] {result.get('path')}")
+    else:
+        console.print(f"[green]✓ Sent via {result.get('transport')}[/green]")
+
+
+@app.command()
+def followups(
+    due: bool = typer.Option(True, "--due/--all", help="Only due follow-ups"),
+    draft: bool = typer.Option(False, "--draft", help="Create email drafts for due follow-ups"),
+    done: str = typer.Option("", "--done", help="Mark a follow-up ID as done"),
+    skipped: str = typer.Option("", "--skip", help="Skip a follow-up ID"),
+):
+    """See and act on the follow-up schedule."""
+    from services.followups import (
+        complete_followup, draft_followup, list_followups,
+    )
+    if done:
+        console.print("[green]✓ Done[/green]" if complete_followup(done, "done") else "[red]Not found[/red]")
+        return
+    if skipped:
+        console.print("[blue]Skipped[/blue]" if complete_followup(skipped, "skipped") else "[red]Not found[/red]")
+        return
+
+    rows = list_followups(due_only=due)
+    if not rows:
+        console.print("[green]No follow-ups due.[/green]")
+        return
+
+    table = Table(box=box.SIMPLE)
+    table.add_column("ID")
+    table.add_column("Company")
+    table.add_column("Role")
+    table.add_column("Kind")
+    table.add_column("Due")
+    table.add_column("Contact")
+    table.add_column("Status")
+    for item in rows:
+        table.add_row(
+            item["id"][:8], item["company"], item["role"][:30], item["kind"],
+            item["due_at"].strftime("%b %d"), item["contact_name"] or "portal check",
+            item["status"],
+        )
+    console.print(table)
+
+    if draft:
+        for item in rows:
+            result = draft_followup(item["id"])
+            if result.get("needs_manual"):
+                console.print(f"  [yellow]{item['company']}: {result.get('message')}[/yellow]")
+            elif result.get("ok"):
+                console.print(f"  [green]✓ Draft queued[/green] {item['company']} — review with jobzo inbox")
+            else:
+                console.print(f"  [red]{item['company']}: {result.get('error')}[/red]")
+
+
+@app.command()
+def resume(
+    action: str = typer.Argument("list", help="list | fit | analyze"),
+    target: str = typer.Option("", "--job", "-j", help="Job ID for fit analysis"),
+):
+    """Resume management: list variants, check fit, analyze gaps."""
+    if action == "fit" and target:
+        fit(target)
+    elif action == "analyze":
+        console.print("[yellow]Resume analysis not yet implemented[/yellow]")
+    else:
+        from resumes.registry import get_registry
+        reg = get_registry()
+        console.print(f"[bold cyan]Resumes[/bold cyan] — {len(reg.all())} variants")
+        for r in reg.all():
+            console.print(f"  • {r.name}")
+
+
+@app.command()
+def config(
+    key: str = typer.Argument("", help="Config key to view or set"),
+    value: str = typer.Option("", "--set", "-s", help="Set a config value"),
+):
+    """View or modify JobZo configuration."""
+    console.print("[yellow]Config management not yet implemented[/yellow]")
+    console.print("  Config file: config/settings.yaml (coming soon)")
 
 
 if __name__ == "__main__":

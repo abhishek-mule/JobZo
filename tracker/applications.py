@@ -114,6 +114,21 @@ def transition_status(app_id: str, new_status: str) -> bool:
         from tracker.outcomes import auto_record_from_status
         auto_record_from_status(app.id)
 
+        # Keep the follow-up schedule aligned with reality. A submitted
+        # application schedules its cadence; a reply/rejection stops it.
+        if new_status == "submitted":
+            try:
+                from services.followups import ensure_followups
+                ensure_followups(str(app.id))
+            except Exception as followup_error:
+                logger.debug("Follow-up scheduling failed (non-fatal): %s", followup_error)
+        elif new_status in ("interview", "rejected", "offer", "accepted", "declined"):
+            try:
+                from services.followups import cancel_followups
+                cancel_followups(str(app.id))
+            except Exception as followup_error:
+                logger.debug("Follow-up cancellation failed (non-fatal): %s", followup_error)
+
         logger.info("Application %s -> %s", app_id, new_status)
         return True
     except Exception as e:

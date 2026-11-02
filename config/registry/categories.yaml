@@ -1,50 +1,40 @@
-# Company categories
-# primary_category: exactly one per company
-# secondary_categories: zero or more per company
+# Company categories — each company has exactly one primary_category.
+# These represent hiring ecosystems, not tech classifications.
 
 categories:
-  Product:
-    label: Product Company
-    description: Companies building their own software product
-  SaaS:
-    label: SaaS Company
-    description: Software as a Service provider
-  GCC:
+  indian_product:
+    label: Indian Product Company
+    description: Homegrown product companies (PhonePe, Groww, Meesho, Flipkart, Swiggy, etc.)
+  gcc:
     label: Global Capability Center
-    description: Captive development centers of global corporations
-  MNC:
+    description: Captive R&D/IT centers of global corporations in India
+  mnc:
     label: Multinational Corporation
-    description: Large global technology corporations
-  Startup:
+    description: Large global tech corporations with India offices
+  service:
+    label: IT Services
+    description: IT services and consulting firms (TCS, Infosys, Wipro, Accenture, etc.)
+  startup:
     label: Startup
-    description: Early to growth-stage companies (<500 employees)
-  Service:
-    label: Service Company
-    description: IT services and consulting firms
-  AI:
-    label: AI Company
-    description: Artificial intelligence and machine learning focused
-  FinTech:
+    description: Early to growth-stage startups (<500 employees)
+  remote:
+    label: Remote-First
+    description: Companies with remote-first or distributed work culture
+  yc:
+    label: Y Combinator
+    description: Y Combinator-backed companies
+  fintech:
     label: FinTech
     description: Financial technology companies
-  HealthTech:
-    label: HealthTech
-    description: Healthcare technology companies
-  DevTools:
-    label: Developer Tools
-    description: Tools and infrastructure for developers
-  E-commerce:
-    label: E-commerce
-    description: E-commerce and retail technology
-  Testing:
-    label: Testing
-    description: Software testing and QA platforms
-  Security:
-    label: Security
-    description: Cybersecurity companies
-  EdTech:
+  edtech:
     label: EdTech
     description: Education technology companies
-  Cloud:
-    label: Cloud Infrastructure
-    description: Cloud computing and infrastructure companies
+  healthtech:
+    label: HealthTech
+    description: Healthcare technology companies
+  devtools:
+    label: Developer Tools
+    description: Developer tooling and infrastructure
+  government:
+    label: Government / PSU
+    description: Government IT departments and public sector units

@@ -12,7 +12,7 @@ from rich.table import Table
 from rich import box
 
 from services.config import Config
-from services.company_registry import get_stats, get_by_category, get_by_technology, get_fresher_friendly, get_all
+from services.company_registry import get_stats, get_by_category, get_fresher_friendly, get_all
 
 console = Console()
 
@@ -209,8 +209,8 @@ def run_registry_coverage(profile: dict) -> BenchmarkResult:
             cat = key.split(":", 1)[1]
             actual = len(get_by_category(cat))
         elif key.startswith("tech:"):
-            tech = key.split(":", 1)[1]
-            actual = len(get_by_technology(tech))
+            # No longer tracked at company level
+            actual = 0
         elif key == "fresher_friendly":
             actual = len(get_fresher_friendly())
         elif key == "total":

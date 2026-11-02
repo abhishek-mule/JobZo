@@ -32,58 +32,71 @@ class EligibilityRule(ABC):
 
 # ── Rules ────────────────────────────────────────────────────────────────────
 
-SENIOR_TITLES = [
-    "staff", "principal", "distinguished", "architect",
-    "manager", "director", "head of", "vp ", "vice president",
-    "fellow", "chief",
-]
-
-EXCLUDED_TITLES = [
+HARD_REJECT_TITLES = [
     "staff engineer", "principal engineer", "distinguished engineer",
     "staff software", "principal software", "distinguished software",
-    "head of", "vp ", "vice president", "chief",
-    "director of", "director,", "engineering manager",
+    "staff", "principal", "distinguished",
+    "architect",
+    "engineering manager", "manager",
+    "director of", "director,",
+    "vp ", "vice president",
+    "head of",
+    "chief", "fellow",
+    "lead",
+]
+
+SOFT_REJECT_KEYWORDS = [
+    "senior", "sr ",
 ]
 
 
 class ExperienceRule(EligibilityRule):
-    """Block jobs explicitly requiring more experience than the user has."""
+    """Block jobs explicitly requiring more experience than the user has.
 
-    def __init__(self, buffer: int = 1):
-        self.buffer = buffer  # allow jobs asking up to user_years + buffer
+    Hard cap: any job requiring 5+ years is rejected regardless of user profile.
+    Soft cap: if job requires more than user_years + buffer, reject.
+    """
+
+    def __init__(self, buffer: int = 0, hard_max: int = 5):
+        self.buffer = buffer
+        self.hard_max = hard_max
 
     def check(self, job: Job, profile: dict) -> Eligible | Ineligible:
         user_years = profile.get("years_experience", 1)
         text = " ".join(filter(None, [job.title, job.description, job.experience_required]))
         req = parse_experience(text)
         if req.confidence >= 0.5 and req.min_years is not None:
+            if req.min_years >= self.hard_max:
+                return Ineligible(reason=(
+                    f"requires {req.min_years}+ years (hard cap: {self.hard_max})"
+                ))
             if req.min_years > user_years + self.buffer:
                 return Ineligible(reason=(
-                    f"requires {req.min_years}+ years, you have {user_years} (confidence: {req.confidence:.0%})"
+                    f"requires {req.min_years}+ years, you have {user_years}"
                 ))
         return Eligible()
 
 
 class SeniorityRule(EligibilityRule):
-    """Block senior/staff/principal/head roles for junior profiles."""
+    """Block titles that imply seniority beyond a junior/mid profile.
 
-    def __init__(self, max_seniority_years: int = 4):
-        self.max_years = max_seniority_years
+    Hard rejects (all users): staff, principal, distinguished, architect,
+    manager, director, VP, head of, chief, fellow, lead.
+    Soft rejects (<3yr users): senior, sr.
+    """
 
     def check(self, job: Job, profile: dict) -> Eligible | Ineligible:
         user_years = profile.get("years_experience", 1)
         title_lower = job.title.lower()
 
-        # Check excluded title patterns first
-        for excl in EXCLUDED_TITLES:
-            if excl in title_lower:
-                return Ineligible(reason=f"seniority gate: {excl} role with {user_years}yr")
+        for kw in HARD_REJECT_TITLES:
+            if kw in title_lower:
+                return Ineligible(reason=f"title requires seniority beyond your profile ({kw})")
 
-        # Check individual senior keywords for <2yr experience
-        if user_years < 2:
-            for kw in SENIOR_TITLES:
+        if user_years < 3:
+            for kw in SOFT_REJECT_KEYWORDS:
                 if kw in title_lower:
-                    return Ineligible(reason=f"seniority gate: {kw} role with {user_years}yr")
+                    return Ineligible(reason=f"senior title ({kw}) with {user_years}yr experience")
 
         return Eligible()
 
@@ -168,6 +181,28 @@ class RemotePolicyRule(EligibilityRule):
         return Eligible()
 
 
+class CompanyEligibilityRule(EligibilityRule):
+    """Block jobs for companies whose hiring criteria don't match the user.
+
+    Checks graduate_roles from the Company registry (looked up via job.company name).
+    Experience-based filtering happens at the job level (ExperienceRule).
+    """
+
+    def check(self, job: Job, profile: dict) -> Eligible | Ineligible:
+        user_years = profile.get("years_experience", 1)
+        try:
+            from services.company_registry import get_by_alias
+            company = get_by_alias(job.company)
+            if company is None:
+                return Eligible()
+
+            if company.graduate_roles and user_years > 1:
+                return Ineligible(reason="company hires fresh graduates only")
+        except Exception:
+            pass
+        return Eligible()
+
+
 # ── Engine ───────────────────────────────────────────────────────────────────
 
 class EligibilityEngine:
@@ -180,6 +215,7 @@ class EligibilityEngine:
             VisaRule(),
             LocationRule(),
             RemotePolicyRule(),
+            CompanyEligibilityRule(),
         ]
 
     def check(self, job: Job, profile: dict | None = None) -> Eligible | Ineligible:

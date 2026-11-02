@@ -214,6 +214,36 @@ jobzo benchmark --profile backend_fresher  # Single profile
 
 ---
 
+## Human-approved action pipeline
+
+The daily path from discovery to outreach, with a human gate before every
+consequential action:
+
+```bash
+jobzo brief --queue       # queue the best opportunities + show the 15-min brief
+jobzo inbox               # approve / reject / edit / skip
+
+jobzo contact-add ...     # add a recruiter with a public source URL
+jobzo cold-email <app-id> # draft a personalized email (queues approval)
+jobzo email-send <draft-id> --approve
+
+jobzo followups --draft   # work the 3/6/12 business-day schedule
+```
+
+Key guarantees:
+
+- Applications, cold emails, and follow-ups execute only after approval.
+- Suspicious, expired, experienced-only, and irrelevant jobs are auto-rejected
+  with evidence, before they cost you review time.
+- Contacts are verified on separate identity, domain, mailbox, and relevance
+  dimensions. Emails are never guessed and LinkedIn is never scraped.
+- Without SMTP configured, email is written to `logs/outbox/*.eml` and is
+  explicitly **not** marked as sent.
+
+Full details: [PIPELINE.md](PIPELINE.md).
+
+---
+
 ## Setup
 
 ### Prerequisites

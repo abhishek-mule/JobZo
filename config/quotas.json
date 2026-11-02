@@ -1,0 +1,62 @@
+[
+  {
+    "platform": "yc_workatastartup",
+    "company": "Wasmer",
+    "role": "Rust Engineer, Distributed Systems",
+    "timestamp": "2026-07-23T17:16:27.132048"
+  },
+  {
+    "platform": "company:NVIDIA",
+    "company": "Nvidia",
+    "role": "Networking SoftwareNetworking software for optimized performance and scalability",
+    "timestamp": "2026-07-23T17:30:58.867199"
+  },
+  {
+    "platform": "yc_workatastartup",
+    "company": "GoGoGrandparent",
+    "role": "Backend Engineer",
+    "timestamp": "2026-07-23T18:31:16.500644"
+  },
+  {
+    "platform": "yc_workatastartup",
+    "company": "Jiga",
+    "role": "Full Stack Product Engineer - Remote/US",
+    "timestamp": "2026-07-23T18:31:27.051394"
+  },
+  {
+    "platform": "yc_workatastartup",
+    "company": "Runway",
+    "role": "Full Stack Engineer",
+    "timestamp": "2026-07-23T18:31:35.829028"
+  },
+  {
+    "platform": "yc_workatastartup",
+    "company": "Curri",
+    "role": "Solutions Engineer ",
+    "timestamp": "2026-07-23T18:38:19.500621"
+  },
+  {
+    "platform": "company:Vercel",
+    "company": "Vercel",
+    "role": "Security Engineer, Detection ResponseBerlin, London, New York City, San FranciscoRead more",
+    "timestamp": "2026-07-23T18:53:40.809430"
+  },
+  {
+    "platform": "yc_workatastartup",
+    "company": "Stardex",
+    "role": "Full Stack Engineer",
+    "timestamp": "2026-08-19T04:58:37.402117"
+  },
+  {
+    "platform": "company:Brex",
+    "company": "Brex",
+    "role": "AI Engineer, Ecosystem",
+    "timestamp": "2026-10-03T10:54:42.707882"
+  },
+  {
+    "platform": "company:Brex",
+    "company": "Brex",
+    "role": "Support Specialist I",
+    "timestamp": "2026-10-03T10:54:58.636140"
+  }
+]

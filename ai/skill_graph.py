@@ -165,30 +165,8 @@ def missing_skills(resume_skills: list[str], job_skills: list[str], min_strength
 def unlocked_companies(resume_skills: list[str], companies_db) -> list[tuple[str, float]]:
     """Estimate how many more companies become accessible by learning each missing skill.
 
-    Args:
-        resume_skills: Current skills.
-        companies_db: A callable that returns companies with backend_stack.
-
-    Returns:
-        List of (skill_name, new_company_score) pairs.
+    Uses job-level skill data to compute this (company-level backend_stack is
+    no longer maintained in the registry). Returns empty until job-based
+    skill analysis is implemented.
     """
-    from services.company_registry import get_by_technology
-    current = set(resume_skills)
-    results: list[tuple[str, float]] = []
-
-    # Get a broad sample of relevant skills from the graph
-    expanded = expand(resume_skills, max_depth=1, min_strength=0.3)
-    candidate_skills = set(k for k, v in expanded.items() if v >= 0.5)
-
-    for skill in sorted(candidate_skills - set(s.lower() for s in resume_skills)):
-        companies_with = get_by_technology(skill)
-        if companies_with:
-            current_count = sum(
-                1 for c in companies_with
-                if any(s in (getattr(c, 'backend_stack', None) or []) for s in resume_skills)
-            )
-            new_count = len(companies_with) - current_count
-            if new_count > 0:
-                results.append((skill, new_count))
-
-    return sorted(results, key=lambda x: -x[1])[:10]
+    return []

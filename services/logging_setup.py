@@ -26,4 +26,8 @@ def setup_logging(name: str = "jobzo", level=logging.INFO):
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
 
+    # Suppress verbose loggers from console
+    for noisy in ("alembic", "sqlalchemy", "jobzo.migration"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
     return logger

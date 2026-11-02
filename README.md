@@ -3,7 +3,7 @@
 # JobZo — Evidence-Driven Career Decisions
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)]()
-[![Tests](https://img.shields.io/badge/Tests-200%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-302%20passed-brightgreen)]()
 [![Benchmarks](https://img.shields.io/badge/Benchmarks-11%2F11%20passing-brightgreen)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)]()
 
@@ -56,7 +56,7 @@ Pick an item (`1`, `2`, `3`) and JobZo shows you why it recommended it, the expe
 
 ## This is not a claim — it's a hypothesis being tested. Every experiment, including failures, is documented in [the research logbook](docs/RESEARCH.md).
 
-Further reading: [Design principles](docs/DESIGN_PRINCIPLES.md) · [Research logbook](docs/RESEARCH.md) · [Roadmap](ROADMAP.md)
+Further reading: [Design principles](docs/DESIGN_PRINCIPLES.md) · [Approval pipeline](docs/PIPELINE.md) · [Research logbook](docs/RESEARCH.md) · [Roadmap](ROADMAP.md)
 
 ---
 
@@ -75,6 +75,16 @@ Further reading: [Design principles](docs/DESIGN_PRINCIPLES.md) · [Research log
 | Command | What it does | When to use it |
 |---------|-------------|----------------|
 | `jobzo` | Open the mission loop (inbox + actions) | Every day |
+| `jobzo brief --queue` | 15-minute brief; queue the best opportunities | Every morning |
+| `jobzo inbox` | Approve / reject / edit queued actions | After the brief |
+| `jobzo queue` | Queue opportunities without opening the brief | On demand |
+| `jobzo contacts [company]` | Inspect contact evidence and verification levels | Before outreach |
+| `jobzo contact-add` | Add a recruiter with a public source URL | When you find one |
+| `jobzo contact-discover <company>` | Extract public emails from official pages only | Optional |
+| `jobzo cold-email <application-id>` | Draft a personalized email for approval | After applying |
+| `jobzo drafts` | List outreach and follow-up drafts | On demand |
+| `jobzo email-send <draft-id> --approve` | Approve and send, or write a local `.eml` | After review |
+| `jobzo followups --draft` | Work the 3/6/12-day follow-up schedule | Daily |
 | `jobzo collect` | Fetch new jobs from all providers | Weekly |
 | `jobzo rank` | Score unscored jobs against your skills | After collect |
 | `jobzo track <id> --status <s>` | Update application status | When something changes |
@@ -92,7 +102,7 @@ You apply → JobZo observes the outcome → Compares prediction vs reality
 → Identifies which assumption was wrong → Improves next recommendation
 ```
 
-Every component feeds into this loop. The architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Detailed usage is in [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+Every component feeds into this loop. The architecture is documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The human-approved discovery → outreach → follow-up pipeline is documented in [docs/PIPELINE.md](docs/PIPELINE.md). Detailed usage is in [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 
 ---
 
@@ -103,6 +113,7 @@ Every component feeds into this loop. The architecture is documented in [docs/AR
 | Knowledge | Company registry, skill graph, title normalization | ✓ |
 | Decision | Retriever, ranker, decision snapshots (versioned, immutable) | ✓ |
 | Execution | Mission planner, task providers, outreach, follow-ups | ✓ |
+| Pipeline | Evidence-scored queue, human approval gate, verified contacts, cold email + follow-ups | ✓ |
 | Learning | Observation pipeline, calibration curves, root-cause analysis | ✓ |
 | Research | A/B experiment framework, statistical evaluation | ✓ |
 | Capital | 6-dim career objective (resume, skill, network, interview, reputation, opportunity) | ✓ |

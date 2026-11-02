@@ -15,10 +15,15 @@ PROFILE = {"years_experience": 1, "preferred_locations": "Remote (India)"}
 
 def test_experience_rule():
     rule = ExperienceRule()
-    # Should block
+    # Should block: exceeds hard cap of 5
     r = rule.check(Job(title="Engineer", description="Requires 5+ years", company="T"), PROFILE)
     assert not r.passed
-    assert "5+" in r.reason
+    assert "5" in r.reason
+
+    # Should block: exceeds user_years + buffer (1 + 0 = 1)
+    r = rule.check(Job(title="Engineer", description="Requires 2+ years", company="T"), PROFILE)
+    assert not r.passed
+    assert "2+" in r.reason
 
     # Should pass
     r = rule.check(Job(title="Engineer", description="0-2 years experience", company="T"), PROFILE)
@@ -30,19 +35,36 @@ def test_experience_rule():
     r = rule.check(Job(title="Engineer", description="", company="T"), PROFILE)
     assert r.passed
 
+    # Custom hard cap
+    custom = ExperienceRule(hard_max=3)
+    r = custom.check(Job(title="Engineer", description="Requires 3+ years", company="T"), PROFILE)
+    assert not r.passed
+    assert "3" in r.reason
+
 
 def test_seniority_rule():
     rule = SeniorityRule()
-    # Should block
+    # Hard reject for all users
     for title in ["Staff Engineer", "Principal Engineer", "Engineering Manager",
-                   "Director of Engineering", "Head of AI", "VP Engineering"]:
+                   "Director of Engineering", "Head of AI", "VP Engineering",
+                   "Lead Developer", "Chief Architect", "Distinguished Engineer"]:
         r = rule.check(Job(title=title, description="", company="T"), PROFILE)
         assert not r.passed, f"Expected blocked: {title}"
 
-    # Should pass
+    # Soft reject for <3yr users (PROFILE has 1yr)
+    for title in ["Senior Engineer", "Senior Software Engineer", "Sr Developer"]:
+        r = rule.check(Job(title=title, description="", company="T"), PROFILE)
+        assert not r.passed, f"Expected blocked for <3yr: {title}"
+
+    # Should pass for junior titles
     for title in ["Backend Engineer", "SDE-I", "Software Engineer", "Junior Developer"]:
         r = rule.check(Job(title=title, description="", company="T"), PROFILE)
         assert r.passed, f"Expected passed: {title}"
+
+    # Senior should pass for 3+yr users
+    profile_3yr = {**PROFILE, "years_experience": 3}
+    r = rule.check(Job(title="Senior Engineer", description="", company="T"), profile_3yr)
+    assert r.passed, "Expected senior title to pass for 3yr user"
 
 
 def test_visa_rule():
@@ -84,6 +106,8 @@ def test_engine():
         (Job(title="Backend Engineer", description="US Citizen only", company="T"), False),
         (Job(title="VP Engineering", description="", company="T"), False),
         (Job(title="Engineer", description="On-site in San Francisco", company="T"), False),
+        (Job(title="Senior Engineer", description="", company="T"), False),
+        (Job(title="Lead Developer", description="", company="T"), False),
     ]
     for job, expected_eligible in cases:
         r = engine.check(job, PROFILE)
@@ -98,6 +122,19 @@ def test_engine():
     for job in good:
         r = engine.check(job, PROFILE)
         assert r.passed, f"Expected eligible for {job.title}: {r.reason}"
+
+
+def test_company_eligibility_rule():
+    """Test CompanyEligibilityRule with company-level fields."""
+    from services.eligibility import CompanyEligibilityRule
+    from database.models import Company
+
+    rule = CompanyEligibilityRule()
+    job = Job(title="Engineer", description="", company="T")
+
+    # If no company in DB, should pass
+    r = rule.check(job, PROFILE)
+    assert r.passed
 
 
 if __name__ == "__main__":

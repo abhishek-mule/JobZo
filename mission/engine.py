@@ -1363,7 +1363,16 @@ def _handle_inbox_item(item: InboxItem):
     if item.category in ("apply", "review") and choice == "1":
         session = get_session()
         try:
-            app = session.get(Application, item.app_id) if item.app_id else None
+            from sqlalchemy.orm import joinedload
+            app = (
+                session.query(Application)
+                .options(
+                    joinedload(Application.current_decision),
+                    joinedload(Application.job),
+                )
+                .filter(Application.id == item.app_id)
+                .first()
+            ) if item.app_id else None
         finally:
             session.close()
         if app:
@@ -1678,9 +1687,21 @@ def _system_check():
     console.print()
 
 
+def _auto_refresh():
+    """Collect new jobs and score them silently on startup."""
+    try:
+        count = asyncio.run(collect_all())
+        if count:
+            logger.info("Auto-collected %d new jobs", count)
+        asyncio.run(score_pending_jobs())
+    except Exception as e:
+        logger.debug("Auto-refresh skipped: %s", e)
+
+
 def run_mission():
     """Main loop: show inbox → act → repeat until exit."""
     _system_check()
+    _auto_refresh()
 
     from domain.observation import ObservationService, ObservationType
     import uuid

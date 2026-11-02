@@ -1,1050 +1,988 @@
 # ── Company Registry ──────────────────────────────────────────────────────────
-# This is the source of truth for every company JobZo knows about.
+# Identity only: what a company IS, not what it's doing right now.
 #
-# Fields:
-#   primary_category     – Exactly one from categories.yaml
-#   secondary_categories – Zero or more from categories.yaml
-#   stage                – Startup | Growth | Enterprise
-#   offices              – List of location names matching locations.yaml
-#   hiring_regions       – List of region names (India, Remote, US, Europe, Global)
-#   ats                  – List of ATS types matching ats.yaml
-#   careers_url          – Human-friendly careers page URL
-#   job_listing_url      – Machine-parsed job listing URL (used by CompanyPagesProvider)
-#   fresher_friendly     – bool: does this company hire freshers?
-#   internship           – bool: does this company offer internships?
-#   remote_policy        – Remote | Hybrid | On-site
-#   backend_stack        – List of technologies from technologies.yaml
-#   hiring_patterns      – Relative hiring demand by role type (High/Medium/Low)
-#   interview            – Estimated difficulty (1-10), OA flag, system design flag
-#   salary               – Salary bands in LPA (min/max for fresher, intern)
-#   priority             – High | Medium | Low (for search ranking)
-#   tags                 – Free-form tags for discovery/filtering
-#   confidence           – How confident we are in this company's data (0-1)
+# Identity fields:
+#   name                - Display name
+#   category            - One of categories.yaml (hiring ecosystem)
+#   ats                 - Primary ATS name (matches ats_profiles table)
+#   careers_url         - Human-friendly careers page
+#   job_listing_url     - Machine-friendly job listing URL (optional override)
+#   fresher_friendly    - Known to hire freshers (<2yr experience)
+#   graduate_roles      - Explicitly runs graduate/ campus hiring programs
+#   internship          - Offers internship programs
+#   remote_policy       - Remote | Hybrid | On-site (optional)
+#   poll_interval_hours - How often to poll (default 24)
+#   tags                - Free-form keywords for discovery/filtering
+#
+# Registry provenance:
+#   status              - active | paused | broken | archived (default active)
+#   registry_source     - manual | wellfound | yc | csv | community | college | github (default manual)
+#   registry_quality    - verified | community | auto_discovered | deprecated (default manual)
+#
+# Hiring channels (optional - for companies with multiple hiring pipelines):
+#   hiring_channels:
+#     channel_name:
+#       url:            - Machine-friendly URL for this channel
+#       ats:            - ATS for this channel (overrides company default)
+#       fresher_friendly: true
+#       graduate_roles: true
 
 browserstack:
-  primary_category: SaaS
-  secondary_categories:
-    - Product
-    - Testing
-  stage: Growth
-  offices:
-    - Mumbai
-    - Bangalore
-  hiring_regions:
-    - India
-    - Remote
-  ats:
-    - smartrecruiters
+  name: BrowserStack
+  category: indian_product
+  ats: smartrecruiters
   careers_url: https://www.browserstack.com/careers
-  job_listing_url: https://browserstack.hire.trakstar.com/
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Spring Boot
-    - Redis
-    - Kafka
-    - Kubernetes
-    - Docker
-    - MySQL
-    - RabbitMQ
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 7
-    oa: true
-    system_design: false
-  salary:
-    fresher:
-      min: 18
-      max: 28
-    intern:
-      min: 3
-      max: 5
-  priority: High
-  confidence: 0.95
-  tags:
-    - devtools
-    - testing
-    - java
+  poll_interval_hours: 24
+  tags: [devtools, testing, java]
 
 razorpay:
-  primary_category: FinTech
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - Bangalore
-  hiring_regions:
-    - India
-    - Remote
-  ats:
-    - greenhouse
+  name: Razorpay
+  category: fintech
+  ats: greenhouse
   careers_url: https://razorpay.com/careers/
-  job_listing_url: https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Spring Boot
-    - Redis
-    - Kafka
-    - MySQL
-    - Docker
-    - Kubernetes
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 20
-      max: 35
-    intern:
-      min: 3
-      max: 6
-  priority: High
-  confidence: 0.95
-  tags:
-    - fintech
-    - payments
-    - java
+  tags: [fintech, payments, java]
 
 postman:
-  primary_category: DevTools
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - Bangalore
-    - Pune
-    - San Francisco
-  hiring_regions:
-    - India
-    - Remote
-    - US
-  ats:
-    - greenhouse
+  name: Postman
+  category: indian_product
+  ats: greenhouse
   careers_url: https://www.postman.com/company/careers/
-  job_listing_url: https://job-boards.greenhouse.io/postman
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Remote
-  backend_stack:
-    - Node
-    - TypeScript
-    - PostgreSQL
-    - Redis
-    - Docker
-    - Kubernetes
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Low
-  interview:
-    difficulty: 7
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 20
-      max: 32
-    intern:
-      min: 3
-      max: 5
-  priority: High
-  confidence: 0.95
-  tags:
-    - devtools
-    - api
-    - typescript
+  tags: [devtools, api, typescript]
 
 stripe:
-  primary_category: FinTech
-  secondary_categories:
-    - Product
-    - SaaS
-  stage: Enterprise
-  offices:
-    - San Francisco
-    - New York
-    - Seattle
-    - Dublin
-    - Singapore
-  hiring_regions:
-    - US
-    - Europe
-    - Remote
-  ats:
-    - generic
+  name: Stripe
+  category: fintech
+  ats: generic
   careers_url: https://stripe.com/jobs
-  job_listing_url: https://stripe.com/jobs/search
   fresher_friendly: false
   internship: true
   remote_policy: Remote
-  backend_stack:
-    - Ruby
-    - Java
-    - Scala
-    - PostgreSQL
-    - Kafka
-    - Redis
-    - Docker
-    - Kubernetes
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 9
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 30
-      max: 50
-    intern:
-      min: 6
-      max: 10
-  priority: High
-  confidence: 0.75
-  tags:
-    - payments
-    - fintech
-    - remote
 
 atlassian:
-  primary_category: Product
-  secondary_categories:
-    - SaaS
-  stage: Enterprise
-  offices:
-    - Bangalore
-    - Sydney
-    - San Francisco
-    - New York
-    - London
-  hiring_regions:
-    - India
-    - US
-    - Europe
-    - Remote
-  ats:
-    - generic
+  name: Atlassian
+  category: mnc
+  ats: generic
   careers_url: https://www.atlassian.com/company/careers
-  job_listing_url: https://www.atlassian.com/company/careers/all-jobs
   fresher_friendly: true
   internship: true
   remote_policy: Remote
-  backend_stack:
-    - Java
-    - Python
-    - Spring Boot
-    - PostgreSQL
-    - Redis
-    - Docker
-    - Kubernetes
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 22
-      max: 38
-    intern:
-      min: 4
-      max: 7
-  priority: High
-  confidence: 0.70
-  tags:
-    - product
-    - saas
-    - collaboration
+  tags: [product, saas, collaboration]
 
 gitlab:
-  primary_category: DevTools
-  secondary_categories:
-    - SaaS
-  stage: Enterprise
-  offices:
-    - Remote
-  hiring_regions:
-    - Remote
-    - India
-    - US
-    - Europe
-  ats:
-    - greenhouse
+  name: GitLab
+  category: remote
+  ats: greenhouse
   careers_url: https://about.gitlab.com/jobs/
-  job_listing_url: https://job-boards.greenhouse.io/gitlab
   fresher_friendly: false
-  internship: false
   remote_policy: Remote
-  backend_stack:
-    - Ruby
-    - Go
-    - PostgreSQL
-    - Redis
-    - Kubernetes
-    - GCP
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 8
-    oa: false
-    system_design: true
-  salary:
-    fresher:
-      min: 25
-      max: 45
-  priority: High
-  confidence: 0.95
-  tags:
-    - devtools
-    - remote-first
-    - devops
 
 vercel:
-  primary_category: DevTools
-  secondary_categories:
-    - SaaS
-  stage: Growth
-  offices:
-    - San Francisco
-    - New York
-    - Remote
-  hiring_regions:
-    - Remote
-    - US
-    - Europe
-  ats:
-    - ashby
+  name: Vercel
+  category: devtools
+  ats: ashby
   careers_url: https://vercel.com/careers
-  job_listing_url: https://jobs.ashbyhq.com/vercel
   fresher_friendly: false
-  internship: false
   remote_policy: Remote
-  backend_stack:
-    - TypeScript
-    - Node
-    - Go
-    - React
-    - Next.js
-    - PostgreSQL
-    - Redis
-    - GCP
-  hiring_patterns:
-    backend: High
-    frontend: High
-    devops: Medium
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 28
-      max: 45
-  priority: High
-  confidence: 0.90
-  tags:
-    - devtools
-    - frontend
-    - cloud
 
 anthropic:
-  primary_category: AI
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - San Francisco
-    - New York
-    - Remote
-  hiring_regions:
-    - US
-    - Remote
-  ats:
-    - ashby
+  name: Anthropic
+  category: yc
+  ats: ashby
   careers_url: https://www.anthropic.com/careers
-  job_listing_url: https://jobs.ashbyhq.com/anthropic
   fresher_friendly: false
-  internship: false
   remote_policy: Remote
-  backend_stack:
-    - Python
-    - TypeScript
-    - Rust
-    - PyTorch
-    - Kubernetes
-    - AWS
-    - GCP
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-    ai_ml: High
-  interview:
-    difficulty: 9
-    oa: false
-    system_design: true
-  salary:
-    fresher:
-      min: 35
-      max: 55
-  priority: High
-  confidence: 0.90
-  tags:
-    - ai
-    - llm
-    - research
 
 openai:
-  primary_category: AI
-  secondary_categories:
-    - Product
-  stage: Enterprise
-  offices:
-    - San Francisco
-    - New York
-    - London
-    - Tokyo
-  hiring_regions:
-    - US
-    - Europe
-  ats:
-    - ashby
+  name: OpenAI
+  category: yc
+  ats: ashby
   careers_url: https://openai.com/careers/
-  job_listing_url: https://jobs.ashbyhq.com/openai
   fresher_friendly: false
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Python
-    - Go
-    - Rust
-    - PyTorch
-    - Kubernetes
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-    ai_ml: High
-  interview:
-    difficulty: 10
-    oa: false
-    system_design: true
-  salary:
-    fresher:
-      min: 40
-      max: 60
-    intern:
-      min: 8
-      max: 12
-  priority: High
-  confidence: 0.90
-  tags:
-    - ai
-    - llm
-    - research
 
 notion:
-  primary_category: SaaS
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - San Francisco
-    - New York
-    - Remote
-  hiring_regions:
-    - US
-    - Remote
-  ats:
-    - lever
+  name: Notion
+  category: remote
+  ats: lever
   careers_url: https://www.notion.so/careers
-  job_listing_url: https://jobs.lever.co/notion
   fresher_friendly: false
   internship: true
   remote_policy: Remote
-  backend_stack:
-    - TypeScript
-    - Node
-    - React
-    - PostgreSQL
-    - Redis
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: High
-    devops: Medium
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 30
-      max: 48
-    intern:
-      min: 6
-      max: 9
-  priority: High
-  confidence: 0.95
-  tags:
-    - productivity
-    - collaboration
-    - typescript
 
 cred:
-  primary_category: FinTech
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - Bangalore
-  hiring_regions:
-    - India
-  ats:
-    - lever
+  name: CRED
+  category: fintech
+  ats: lever
   careers_url: https://cred.club/careers
-  job_listing_url: https://jobs.lever.co/cred
   fresher_friendly: true
-  internship: false
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Spring Boot
-    - Redis
-    - Kafka
-    - PostgreSQL
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 7
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 20
-      max: 35
-  priority: High
-  confidence: 0.95
-  tags:
-    - fintech
-    - payments
-    - java
+  tags: [fintech, payments, java]
 
 jpmorgan:
-  primary_category: GCC
-  secondary_categories:
-    - FinTech
-  stage: Enterprise
-  offices:
-    - Mumbai
-    - Bangalore
-    - Hyderabad
-    - New York
-    - London
-    - Singapore
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - workday
+  name: JPMorgan Chase
+  category: gcc
+  ats: oracle_cloud
   careers_url: https://jpmc.fa.oraclecloud.com/
-  job_listing_url: https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Spring Boot
-    - Python
-    - PostgreSQL
-    - Kafka
-    - Redis
-    - Docker
-    - Kubernetes
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Low
-  interview:
-    difficulty: 7
-    oa: true
-    system_design: false
-  salary:
-    fresher:
-      min: 16
-      max: 30
-    intern:
-      min: 4
-      max: 7
-  priority: High
-  confidence: 0.70
-  tags:
-    - banking
-    - finance
-    - java
+  tags: [banking, finance, java]
 
 goldmansachs:
-  primary_category: GCC
-  secondary_categories:
-    - FinTech
-  stage: Enterprise
-  offices:
-    - Bangalore
-    - Hyderabad
-    - Mumbai
-    - New York
-    - London
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - generic
+  name: Goldman Sachs
+  category: gcc
+  ats: generic
   careers_url: https://www.goldmansachs.com/careers/
-  job_listing_url: https://www.goldmansachs.com/careers/join-us/jobs.html
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Python
-    - C++
-    - Spring Boot
-    - Kafka
-    - PostgreSQL
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Low
-    devops: Low
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 16
-      max: 28
-    intern:
-      min: 4
-      max: 7
-  priority: High
-  confidence: 0.65
-  tags:
-    - banking
-    - finance
-    - java
+  tags: [banking, finance, java]
 
 microsoft:
-  primary_category: MNC
-  secondary_categories:
-    - Product
-    - AI
-    - Cloud
-  stage: Enterprise
-  offices:
-    - Bangalore
-    - Hyderabad
-    - Noida
-    - Pune
-    - Redmond
-    - San Francisco
-    - New York
-    - London
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - generic
+  name: Microsoft
+  category: mnc
+  ats: generic
   careers_url: https://careers.microsoft.com/
-  job_listing_url: https://careers.microsoft.com/us/en/search-results
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Python
-    - C#
-    - TypeScript
-    - Azure
-    - Kubernetes
-    - Docker
-    - PostgreSQL
-    - Redis
-  hiring_patterns:
-    backend: High
-    frontend: High
-    devops: High
-    ai_ml: High
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 22
-      max: 40
-    intern:
-      min: 5
-      max: 9
-  priority: High
-  confidence: 0.65
-  tags:
-    - cloud
-    - enterprise
-    - ai
+  tags: [cloud, enterprise, ai]
 
 amazon:
-  primary_category: MNC
-  secondary_categories:
-    - Product
-    - Cloud
-    - E-commerce
-  stage: Enterprise
-  offices:
-    - Bangalore
-    - Hyderabad
-    - Chennai
-    - Delhi
-    - Mumbai
-    - Seattle
-    - San Francisco
-    - New York
-    - London
-    - Dublin
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - amazon
+  name: Amazon
+  category: mnc
+  ats: amazon
   careers_url: https://www.amazon.jobs/
-  job_listing_url: https://www.amazon.jobs/en-gb/
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Python
-    - C++
-    - TypeScript
-    - AWS
-    - Docker
-    - Kubernetes
-    - DynamoDB
-    - Kafka
-    - Redis
-  hiring_patterns:
-    backend: High
-    frontend: High
-    devops: High
-  interview:
-    difficulty: 9
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 20
-      max: 45
-    intern:
-      min: 5
-      max: 10
-  priority: High
-  confidence: 0.85
-  tags:
-    - cloud
-    - ecommerce
-    - aws
+  registry_source: manual
+  registry_quality: verified
+  tags: [cloud, ecommerce, aws]
+  hiring_channels:
+    careers:
+      url: https://www.amazon.jobs/en-gb/
+      ats: amazon
+    campus:
+      url: https://www.amazon.jobs/en-gb/team/university-recruiting
+      ats: amazon
+      fresher_friendly: true
+      graduate_roles: true
+    internships:
+      url: https://www.amazon.jobs/en-gb/team/internships-for-students
+      ats: amazon
+      fresher_friendly: true
 
 tcs:
-  primary_category: Service
-  secondary_categories:
-    - MNC
-  stage: Enterprise
-  offices:
-    - Mumbai
-    - Bangalore
-    - Pune
-    - Hyderabad
-    - Chennai
-    - Kolkata
-    - Delhi
-    - Noida
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - icims
+  name: Tata Consultancy Services
+  category: service
+  ats: icims
   careers_url: https://www.tcs.com/careers
-  job_listing_url: https://ibaimm.tcs.com/
   fresher_friendly: true
+  graduate_roles: true
   internship: true
   remote_policy: On-site
-  backend_stack:
-    - Java
-    - Python
-    - Spring Boot
-    - SQL
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Low
-  interview:
-    difficulty: 5
-    oa: false
-    system_design: false
-  salary:
-    fresher:
-      min: 3
-      max: 7
-    intern:
-      min: 1
-      max: 2.5
-  priority: Medium
-  confidence: 0.55
-  tags:
-    - services
-    - consulting
-    - java
+  poll_interval_hours: 6
+  tags: [services, consulting, java]
 
 accenture:
-  primary_category: Service
-  secondary_categories:
-    - MNC
-  stage: Enterprise
-  offices:
-    - Bangalore
-    - Mumbai
-    - Pune
-    - Hyderabad
-    - Chennai
-    - Delhi
-    - Gurgaon
-    - New York
-    - London
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - workday
+  name: Accenture
+  category: service
+  ats: workday
   careers_url: https://www.accenture.com/in-en/careers
-  job_listing_url: https://accenture.wd3.myworkdayjobs.com/AccentureCareers
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [services, consulting, java]
+
+zoho:
+  name: Zoho
+  category: indian_product
+  ats: generic
+  careers_url: https://www.zohocorp.com/careers
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [product, saas, java]
+
+freshworks:
+  name: Freshworks
+  category: indian_product
+  ats: smartrecruiters
+  careers_url: https://www.freshworks.com/company/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [saas, customer-support, java]
+
+linear:
+  name: Linear
+  category: devtools
+  ats: ashby
+  careers_url: https://linear.app/careers
+  fresher_friendly: false
+  remote_policy: Remote
+
+# ── Service Companies ──────────────────────────────────────────────────────────
+
+infosys:
+  name: Infosys
+  category: service
+  ats: icims
+  careers_url: https://www.infosys.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting, java]
+
+wipro:
+  name: Wipro
+  category: service
+  ats: workday
+  careers_url: https://careers.wipro.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+hcl:
+  name: HCL Technologies
+  category: service
+  ats: workday
+  careers_url: https://www.hcltech.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+ltimindtree:
+  name: LTIMindtree
+  category: service
+  ats: workday
+  careers_url: https://www.ltimindtree.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+tech_mahindra:
+  name: Tech Mahindra
+  category: service
+  ats: workday
+  careers_url: https://careers.techmahindra.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+cognizant:
+  name: Cognizant
+  category: service
+  ats: workday
+  careers_url: https://careers.cognizant.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+capgemini:
+  name: Capgemini
+  category: service
+  ats: workday
+  careers_url: https://www.capgemini.com/in-en/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  poll_interval_hours: 6
+  tags: [services, consulting]
+
+# ── GCC (Global Capability Centers) ────────────────────────────────────────────
+
+mastercard:
+  name: Mastercard
+  category: gcc
+  ats: workday
+  careers_url: https://www.mastercard.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [fintech, payments, java]
+
+visa:
+  name: Visa
+  category: gcc
+  ats: workday
+  careers_url: https://www.visa.com/careers/
   fresher_friendly: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Python
-    - Spring Boot
-    - SQL
-    - AWS
-    - Azure
-    - Docker
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 5
-    oa: false
-    system_design: false
-  salary:
-    fresher:
-      min: 4
-      max: 9
-    intern:
-      min: 1.5
-      max: 3
-  priority: Medium
-  confidence: 0.70
-  tags:
-    - services
-    - consulting
-    - java
+  tags: [fintech, payments, java]
 
-zoho:
-  primary_category: Product
-  secondary_categories:
-    - SaaS
-  stage: Growth
-  offices:
-    - Chennai
-    - Bangalore
-    - Hyderabad
-    - Austin
-    - Singapore
-  hiring_regions:
-    - India
-    - US
-  ats:
-    - generic
-  careers_url: https://www.zohocorp.com/careers
-  job_listing_url: https://careers.zohocorp.com/
+wells_fargo:
+  name: Wells Fargo
+  category: gcc
+  ats: workday
+  careers_url: https://www.wellsfargo.com/about/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance]
+
+american_express:
+  name: American Express
+  category: gcc
+  ats: workday
+  careers_url: https://www.americanexpress.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [fintech, payments]
+
+bosch:
+  name: Bosch
+  category: gcc
+  ats: workday
+  careers_url: https://www.bosch.in/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [engineering, embedded, iot]
+
+siemens:
+  name: Siemens
+  category: gcc
+  ats: workday
+  careers_url: https://www.siemens.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [engineering, industrial, iot]
+
+morgan_stanley:
+  name: Morgan Stanley
+  category: gcc
+  ats: workday
+  careers_url: https://www.morganstanley.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance, java]
+
+bny_mellon:
+  name: BNY Mellon
+  category: gcc
+  ats: workday
+  careers_url: https://www.bnymellon.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance]
+
+# ── MNC (Multinational Tech Corps) ─────────────────────────────────────────────
+
+google:
+  name: Google
+  category: mnc
+  ats: generic
+  careers_url: https://careers.google.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  registry_source: manual
+  registry_quality: verified
+  tags: [cloud, ai, android]
+  hiring_channels:
+    careers:
+      url: https://careers.google.com/jobs/results/
+      ats: generic
+    campus:
+      url: https://buildyourfuture.withgoogle.com/
+      ats: generic
+      fresher_friendly: true
+      graduate_roles: true
+    internships:
+      url: https://careers.google.com/jobs/results/?category=INTERNSHIP
+      ats: generic
+      fresher_friendly: true
+
+meta:
+  name: Meta
+  category: mnc
+  ats: generic
+  careers_url: https://www.metacareers.com/
+  fresher_friendly: false
+  internship: true
+  remote_policy: Hybrid
+  tags: [social, ai, infra]
+
+apple:
+  name: Apple
+  category: mnc
+  ats: generic
+  careers_url: https://www.apple.com/careers/us/
+  fresher_friendly: false
+  internship: true
+  remote_policy: On-site
+  tags: [hardware, software, design]
+
+oracle:
+  name: Oracle
+  category: mnc
+  ats: oracle_cloud
+  careers_url: https://www.oracle.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [cloud, database, java]
+
+sap:
+  name: SAP
+  category: mnc
+  ats: workday
+  careers_url: https://www.sap.com/careers.html
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [enterprise, erp, java]
+
+cisco:
+  name: Cisco
+  category: mnc
+  ats: workday
+  careers_url: https://www.cisco.com/c/en/us/careers.html
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [networking, security, infra]
+
+dell:
+  name: Dell Technologies
+  category: mnc
+  ats: workday
+  careers_url: https://www.dell.com/careers/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [hardware, cloud, infra]
+
+intel:
+  name: Intel
+  category: mnc
+  ats: workday
+  careers_url: https://www.intel.com/careers/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [semiconductor, hardware, ai]
+
+ibm:
+  name: IBM
+  category: mnc
+  ats: workday
+  careers_url: https://www.ibm.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [cloud, ai, consulting]
+
+adobe:
+  name: Adobe
+  category: mnc
+  ats: workday
+  careers_url: https://www.adobe.com/careers.html
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [creative, cloud, ai]
+
+nvidia:
+  name: NVIDIA
+  category: mnc
+  ats: workday
+  careers_url: https://www.nvidia.com/careers/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [gpu, ai, hardware]
+
+qualcomm:
+  name: Qualcomm
+  category: mnc
+  ats: workday
+  careers_url: https://www.qualcomm.com/company/careers/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [semiconductor, wireless, ai]
+
+salesforce:
+  name: Salesforce
+  category: mnc
+  ats: workday
+  careers_url: https://www.salesforce.com/company/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [crm, cloud, ai]
+
+# ── Indian Product Companies ───────────────────────────────────────────────────
+
+phonepe:
+  name: PhonePe
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://www.phonepe.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [fintech, payments, java]
+
+groww:
+  name: Groww
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://groww.in/careers
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [fintech, investments]
+
+meesho:
+  name: Meesho
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://careers.meesho.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [ecommerce, social-commerce]
+
+swiggy:
+  name: Swiggy
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://careers.swiggy.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [food-tech, delivery, java]
+
+flipkart:
+  name: Flipkart
+  category: indian_product
+  ats: lever
+  careers_url: https://www.flipkart.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [ecommerce, marketplace, java]
+
+zerodha:
+  name: Zerodha
+  category: indian_product
+  ats: generic
+  careers_url: https://zerodha.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [fintech, trading, python]
+
+urban_company:
+  name: Urban Company
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://careers.urbancompany.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [marketplace, services]
+
+nykaa:
+  name: Nykaa
+  category: indian_product
+  ats: workday
+  careers_url: https://www.nykaa.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [ecommerce, beauty]
+
+dream11:
+  name: Dream11
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://careers.dream11.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [gaming, fantasy-sports]
+
+bmw_tech:
+  name: BMW Tech Works
+  category: gcc
+  ats: workday
+  careers_url: https://www.bmwtechworks.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [automotive, engineering, iot]
+
+# ── More GCCs ─────────────────────────────────────────────────────────────────
+
+fidelity:
+  name: Fidelity Investments
+  category: gcc
+  ats: workday
+  careers_url: https://jobs.fidelity.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [finance, investments, java]
+
+barclays:
+  name: Barclays
+  category: gcc
+  ats: workday
+  careers_url: https://search.barclays.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance, java]
+
+hsbc:
+  name: HSBC
+  category: gcc
+  ats: workday
+  careers_url: https://www.hsbc.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance]
+
+bank_of_america:
+  name: Bank of America
+  category: gcc
+  ats: workday
+  careers_url: https://careers.bankofamerica.com/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [banking, finance, java]
+
+# ── More MNCs ─────────────────────────────────────────────────────────────────
+
+servicenow:
+  name: ServiceNow
+  category: mnc
+  ats: workday
+  careers_url: https://www.servicenow.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [cloud, enterprise, it-service-management]
+
+vmware:
+  name: VMware
+  category: mnc
+  ats: workday
+  careers_url: https://careers.vmware.com/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [virtualization, cloud, infra]
+
+red_hat:
+  name: Red Hat
+  category: mnc
+  ats: greenhouse
+  careers_url: https://www.redhat.com/en/jobs
+  fresher_friendly: true
+  internship: true
+  remote_policy: Remote
+  tags: [open-source, linux, cloud]
+
+# ── More Indian Product ───────────────────────────────────────────────────────
+
+ola:
+  name: Ola
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://www.olacabs.com/careers
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [mobility, transportation, java]
+
+unacademy:
+  name: Unacademy
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://unacademy.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [edtech, education]
+
+zepto:
+  name: Zepto
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://www.zeptonow.com/careers
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [quick-commerce, delivery, tech]
+
+pine_labs:
+  name: Pine Labs
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://www.pinelabs.com/careers
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [fintech, payments, pos]
+
+chargebee:
+  name: Chargebee
+  category: indian_product
+  ats: greenhouse
+  careers_url: https://www.chargebee.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Remote
+  tags: [saas, billing, subscriptions]
+
+# ── More Service ──────────────────────────────────────────────────────────────
+
+mphasis:
+  name: Mphasis
+  category: service
+  ats: workday
+  careers_url: https://www.mphasis.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  poll_interval_hours: 6
+  tags: [services, consulting, java]
+
+hexaware:
+  name: Hexaware
+  category: service
+  ats: workday
+  careers_url: https://hexaware.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  poll_interval_hours: 6
+  tags: [services, digital]
+
+coforge:
+  name: Coforge
+  category: service
+  ats: workday
+  careers_url: https://www.coforge.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  poll_interval_hours: 6
+  tags: [services, consulting, java]
+
+# ── Startups ──────────────────────────────────────────────────────────────────
+
+rapido:
+  name: Rapido
+  category: startup
+  ats: greenhouse
+  careers_url: https://www.rapido.bike/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [mobility, transportation, logistics]
+
+shiprocket:
+  name: Shiprocket
+  category: startup
+  ats: greenhouse
+  careers_url: https://www.shiprocket.in/careers/
+  fresher_friendly: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [logistics, ecommerce, shipping]
+
+porter:
+  name: Porter
+  category: startup
+  ats: greenhouse
+  careers_url: https://porter.in/careers
   fresher_friendly: true
   internship: true
   remote_policy: On-site
-  backend_stack:
-    - Java
-    - JavaScript
-    - PostgreSQL
-    - Redis
-    - Docker
-    - Kubernetes
-  hiring_patterns:
-    backend: High
-    frontend: High
-    devops: Medium
-  interview:
-    difficulty: 6
-    oa: true
-    system_design: false
-  salary:
-    fresher:
-      min: 6
-      max: 15
-    intern:
-      min: 2
-      max: 4
-  priority: Medium
-  confidence: 0.55
-  tags:
-    - product
-    - saas
-    - java
+  tags: [logistics, transportation]
 
-freshworks:
-  primary_category: SaaS
-  secondary_categories:
-    - Product
-  stage: Growth
-  offices:
-    - Chennai
-    - Bangalore
-    - Mumbai
-    - San Francisco
-    - London
-  hiring_regions:
-    - India
-    - US
-    - Europe
-  ats:
-    - smartrecruiters
-  careers_url: https://www.freshworks.com/company/careers/
-  job_listing_url: https://careers.smartrecruiters.com/Freshworks
+# ── Remote-First ──────────────────────────────────────────────────────────────
+
+automattic:
+  name: Automattic
+  category: remote
+  ats: greenhouse
+  careers_url: https://automattic.com/work-with-us/
+  fresher_friendly: false
+  remote_policy: Remote
+  tags: [wordpress, open-source, publishing]
+
+hashicorp:
+  name: HashiCorp
+  category: remote
+  ats: greenhouse
+  careers_url: https://www.hashicorp.com/careers
+  fresher_friendly: false
+  internship: true
+  remote_policy: Remote
+  tags: [devops, cloud, infrastructure]
+
+# ── YC / Wellfound ────────────────────────────────────────────────────────────
+
+brex:
+  name: Brex
+  category: yc
+  ats: greenhouse
+  careers_url: https://www.brex.com/careers/
+  fresher_friendly: false
+  remote_policy: Remote
+  tags: [fintech, spend-management]
+
+deel:
+  name: Deel
+  category: yc
+  ats: lever
+  careers_url: https://www.deel.com/careers
+  fresher_friendly: false
+  remote_policy: Remote
+  tags: [hr, payroll, remote]
+
+rappi:
+  name: Rappi
+  category: yc
+  ats: lever
+  careers_url: https://www.rappi.com/careers/
+  fresher_friendly: false
+  remote_policy: Hybrid
+  tags: [delivery, logistics, latin-america]
+
+# ── EdTech ────────────────────────────────────────────────────────────────────
+
+byjus:
+  name: BYJU's
+  category: edtech
+  ats: workday
+  careers_url: https://byjus.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: On-site
+  tags: [edtech, education, learning]
+
+upgrad:
+  name: UpGrad
+  category: edtech
+  ats: greenhouse
+  careers_url: https://www.upgrad.com/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [edtech, higher-education]
+
+# ── HealthTech ────────────────────────────────────────────────────────────────
+
+pharmeasy:
+  name: PharmEasy
+  category: healthtech
+  ats: greenhouse
+  careers_url: https://pharmeasy.in/careers/
+  fresher_friendly: true
+  graduate_roles: true
+  internship: true
+  remote_policy: Hybrid
+  tags: [pharmacy, healthcare, ecommerce]
+
+practo:
+  name: Practo
+  category: healthtech
+  ats: greenhouse
+  careers_url: https://www.practo.com/company/careers/
   fresher_friendly: true
   internship: true
   remote_policy: Hybrid
-  backend_stack:
-    - Java
-    - Python
-    - Spring Boot
-    - PostgreSQL
-    - Redis
-    - Kafka
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Medium
-  interview:
-    difficulty: 6
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 12
-      max: 22
-    intern:
-      min: 2.5
-      max: 4.5
-  priority: High
-  confidence: 0.85
-  tags:
-    - saas
-    - customer-support
-    - java
-
-linear:
-  primary_category: DevTools
-  secondary_categories:
-    - Startup
-    - SaaS
-  stage: Growth
-  offices:
-    - San Francisco
-    - Remote
-  hiring_regions:
-    - Remote
-    - US
-    - Europe
-  ats:
-    - ashby
-  careers_url: https://linear.app/careers
-  job_listing_url: https://jobs.ashbyhq.com/linear
-  fresher_friendly: false
-  internship: false
-  remote_policy: Remote
-  backend_stack:
-    - TypeScript
-    - Node
-    - React
-    - PostgreSQL
-    - Redis
-    - Docker
-    - AWS
-  hiring_patterns:
-    backend: High
-    frontend: Medium
-    devops: Low
-  interview:
-    difficulty: 8
-    oa: true
-    system_design: true
-  salary:
-    fresher:
-      min: 30
-      max: 50
-  priority: High
-  confidence: 0.90
-  tags:
-    - devtools
-    - productivity
-    - typescript
+  tags: [healthcare, telemedicine]

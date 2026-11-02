@@ -258,40 +258,126 @@ class Event(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class ATSProfile(Base):
+    """Central ATS configuration — parser metadata, not per-company.
+
+    Companies reference ATS profiles via Company.ats (string FK).
+    Lookups happen via direct query, not ORM traversal.
+    """
+    __tablename__ = "ats_profiles"
+
+    name = Column(String, primary_key=True)  # "greenhouse", "lever", "workday", ...
+    label = Column(String, nullable=False)
+    parser_path = Column(String, default="")
+    url_pattern = Column(String, default="")
+    supports_resume = Column(Boolean, default=False)
+    supports_cover_letter = Column(Boolean, default=False)
+    confidence = Column(Float, default=0.5)
+    success_rate = Column(Float, nullable=True)  # derived from poll data
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PollRun(Base):
+    """Event record of a single company poll — never overwritten."""
+    __tablename__ = "poll_runs"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    company_id = Column(String, ForeignKey("companies.id"), nullable=False, index=True)
+    started_at = Column(DateTime, nullable=False)
+    finished_at = Column(DateTime, nullable=True)
+    status = Column(String, default="")  # "success" | "error" | "empty" | "redirected"
+    duration_ms = Column(Integer, nullable=True)
+    http_status = Column(Integer, nullable=True)
+    parser = Column(String, default="")
+    confidence = Column(Float, nullable=True)
+    jobs_found = Column(Integer, default=0)
+    jobs_new = Column(Integer, default=0)
+    jobs_duplicate = Column(Integer, default=0)
+    parse_errors = Column(Integer, default=0)
+    error_message = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    company = relationship("Company", back_populates="poll_runs")
+
+
+class CompanySnapshot(Base):
+    """Periodic point-in-time view of a company's job landscape."""
+    __tablename__ = "company_snapshots"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    company_id = Column(String, ForeignKey("companies.id"), nullable=False, index=True)
+    snapshot_at = Column(DateTime, nullable=False, index=True)
+    jobs_open = Column(Integer, default=0)
+    backend_jobs = Column(Integer, default=0)
+    frontend_jobs = Column(Integer, default=0)
+    graduate_jobs = Column(Integer, default=0)
+    remote_jobs = Column(Integer, default=0)
+    fresher_jobs = Column(Integer, default=0)
+    eligible_jobs = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    company = relationship("Company", back_populates="snapshots")
+
+
+class HiringChannel(Base):
+    """A distinct hiring pipeline within a company.
+
+    One company can have many channels:
+      - Careers page (primary job board)
+      - Campus hiring (separate portal, different ATS)
+      - Internships (different URL, different cadence)
+      - Apprenticeships
+      - Referral program
+
+    Each channel can have its own URL and ATS.
+    """
+    __tablename__ = "hiring_channels"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    company_id = Column(String, ForeignKey("companies.id"), nullable=False, index=True)
+    channel_name = Column(String, nullable=False, index=True)
+    careers_url = Column(String, default="")
+    job_listing_url = Column(String, default="")
+    ats = Column(String, default="")
+    fresher_friendly = Column(Boolean, default=False)
+    graduate_roles = Column(Boolean, default=False)
+    poll_interval_hours = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    company = relationship("Company", back_populates="hiring_channels")
+
+
 class Company(Base):
-    """A company in the registry — known ATS, offices, tech stack, hiring patterns."""
+    """Identity — what a company IS, not what it's doing right now."""
     __tablename__ = "companies"
 
     id = Column(String, primary_key=True)  # short slug, e.g. "browserstack"
     name = Column(String, nullable=False)
     primary_category = Column(String, nullable=False, index=True)
-    secondary_categories = Column(JSON, default=list)
-    stage = Column(String, default="")  # Startup | Growth | Enterprise
-    offices = Column(JSON, default=list)
-    hiring_regions = Column(JSON, default=list)
-    ats = Column(JSON, default=list)
+    ats = Column(String, default="")  # primary ATS (references ATSProfile.name)
     careers_url = Column(String, default="")
     job_listing_url = Column(String, default="")
     fresher_friendly = Column(Boolean, default=False)
     internship = Column(Boolean, default=False)
-    remote_policy = Column(String, default="")  # Remote | Hybrid | On-site
-    backend_stack = Column(JSON, default=list)
-    hiring_patterns = Column(JSON, default=dict)
-    interview_difficulty = Column(Integer, nullable=True)
-    interview_oa = Column(Boolean, default=False)
-    interview_system_design = Column(Boolean, default=False)
-    salary_fresher_min = Column(Float, nullable=True)
-    salary_fresher_max = Column(Float, nullable=True)
-    salary_intern_min = Column(Float, nullable=True)
-    salary_intern_max = Column(Float, nullable=True)
-    priority = Column(String, default="medium")  # High | Medium | Low
-    confidence = Column(Float, default=0.5)
+    graduate_roles = Column(Boolean, default=False)
+    remote_policy = Column(String, default="")
+    poll_interval_hours = Column(Integer, default=24)
     tags = Column(JSON, default=list)
+
+    # Registry provenance
+    status = Column(String, default="active")  # active | paused | broken | archived
+    registry_source = Column(String, default="manual")  # manual | wellfound | yc | csv | community | college | github
+    registry_quality = Column(String, default="manual")  # verified | community | auto_discovered | deprecated
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     aliases = relationship("CompanyAlias", back_populates="company", cascade="all, delete-orphan")
+    hiring_channels = relationship("HiringChannel", back_populates="company", cascade="all, delete-orphan")
+    poll_runs = relationship("PollRun", back_populates="company", cascade="all, delete-orphan")
+    snapshots = relationship("CompanySnapshot", back_populates="company", cascade="all, delete-orphan")
 
 
 class CompanyAlias(Base):
@@ -303,3 +389,161 @@ class CompanyAlias(Base):
     alias = Column(String, nullable=False, index=True)
 
     company = relationship("Company", back_populates="aliases")
+
+
+class ATSDiscovery(Base):
+    """Operational ATS discovery cache — kept separate from registry YAML.
+
+    Stores the result of resolving a company's career URL to a concrete
+    ATS + board token. The registry YAML stays identity-only; this table
+    holds the machine-facing endpoint knowledge.
+    """
+    __tablename__ = "ats_discovery"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    company_id = Column(String, index=True)
+    company_name = Column(String, nullable=False, index=True)
+    careers_url = Column(String, nullable=False)
+    ats = Column(String, nullable=False, default="unknown")
+    board_token = Column(String, default="")
+    api_url = Column(String, default="")
+    method = Column(String, default="")
+    confidence = Column(Float, default=0.0)
+    note = Column(String, default="")
+    is_active = Column(Boolean, default=True)
+    discovered_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ── Human-approved action pipeline ──────────────────────────────────────────
+#
+# The tables below add the missing half of JobZo: a durable approval queue
+# and an evidence trail for every consequential action (apply, cold email,
+# follow-up). Nothing here sends or submits anything by itself. A record must
+# move pending → approved before execution is allowed.
+
+class ApprovalRequest(Base):
+    """A consequential action waiting for (or carrying) a human decision.
+
+    kind:    application | outreach | followup
+    status:  pending | approved | rejected | expired | executed | failed | cancelled
+
+    payload_json holds the exact preview the user approved (recipient,
+    subject, body, resume, answers). evidence_json holds why JobZo proposed
+    it (score factors, trust evidence, fresher evidence, contact verification).
+    """
+    __tablename__ = "approval_requests"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    kind = Column(String, nullable=False, index=True)
+    status = Column(String, nullable=False, default="pending", index=True)
+    title = Column(String, default="")
+    subtitle = Column(String, default="")
+
+    application_id = Column(String, ForeignKey("applications.id"), nullable=True, index=True)
+    job_id = Column(String, ForeignKey("jobs.id"), nullable=True, index=True)
+    contact_id = Column(String, ForeignKey("contacts.id"), nullable=True, index=True)
+    outreach_draft_id = Column(String, nullable=True, index=True)
+
+    dedupe_key = Column(String, unique=True, nullable=False, index=True)
+    opportunity_score = Column(Float, nullable=True)
+    trust_score = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    risk_level = Column(String, default="")
+    expected_value = Column(Float, nullable=True)
+    effort_minutes = Column(Integer, nullable=True)
+
+    payload_json = Column(Text, default="{}")
+    evidence_json = Column(Text, default="{}")
+    decision_note = Column(Text, default="")
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    expires_at = Column(DateTime, nullable=True)
+    decided_at = Column(DateTime, nullable=True)
+    executed_at = Column(DateTime, nullable=True)
+
+
+class ContactEvidence(Base):
+    """One public, auditable source supporting a contact record."""
+    __tablename__ = "contact_evidence"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    contact_id = Column(String, ForeignKey("contacts.id"), nullable=False, index=True)
+    kind = Column(String, nullable=False, index=True)
+    url = Column(String, default="")
+    excerpt = Column(Text, default="")
+    confidence = Column(Float, default=0.5)
+    captured_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ContactVerification(Base):
+    """Separate verification dimensions — a valid address is not a recruiter.
+
+    identity_verified      person is demonstrably employed by the company
+    domain_verified        email belongs to the company's legitimate domain
+    mailbox_verified       mailbox existence was confirmed by a permitted check
+    relevance_verified     person is involved in hiring for the target role
+    """
+    __tablename__ = "contact_verifications"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    contact_id = Column(String, ForeignKey("contacts.id"), nullable=False, unique=True, index=True)
+    company_domain = Column(String, default="")
+    email_domain = Column(String, default="")
+
+    identity_verified = Column(Boolean, default=False)
+    domain_verified = Column(Boolean, default=False)
+    mailbox_verified = Column(Boolean, default=False)
+    relevance_verified = Column(Boolean, default=False)
+
+    status = Column(String, default="unverified", index=True)
+    confidence = Column(Float, default=0.0)
+    reasons_json = Column(Text, default="[]")
+    verified_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class OutreachDraft(Base):
+    """A personalized message. Drafted first, sent only after approval."""
+    __tablename__ = "outreach_drafts"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    contact_id = Column(String, ForeignKey("contacts.id"), nullable=False, index=True)
+    application_id = Column(String, ForeignKey("applications.id"), nullable=True, index=True)
+    job_id = Column(String, ForeignKey("jobs.id"), nullable=True, index=True)
+    followup_id = Column(String, nullable=True, index=True)
+
+    kind = Column(String, default="initial", index=True)  # initial | followup | recruiter_followup | final_followup
+    subject = Column(String, default="")
+    body = Column(Text, default="")
+    status = Column(String, default="draft", index=True)
+    # draft | pending_approval | approved | outbox | sent | failed | rejected | cancelled
+
+    approval_request_id = Column(String, nullable=True, index=True)
+    dedupe_key = Column(String, unique=True, nullable=False, index=True)
+    evidence_json = Column(Text, default="{}")
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    send_error = Column(Text, default="")
+
+
+class FollowUp(Base):
+    """A scheduled, evidence-backed follow-up for an application."""
+    __tablename__ = "followups"
+
+    id = Column(String, primary_key=True, default=gen_uuid)
+    application_id = Column(String, ForeignKey("applications.id"), nullable=False, index=True)
+    contact_id = Column(String, ForeignKey("contacts.id"), nullable=True, index=True)
+    outreach_draft_id = Column(String, nullable=True, index=True)
+
+    kind = Column(String, nullable=False, index=True)  # status_check | recruiter_followup | final_followup
+    due_at = Column(DateTime, nullable=False, index=True)
+    status = Column(String, default="scheduled", index=True)
+    # scheduled | due | drafted | sent | done | skipped | cancelled
+
+    reason = Column(String, default="")
+    dedupe_key = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)

@@ -62,6 +62,7 @@ async def collect_all(keywords: list[str] | None = None) -> int:
 def _store_jobs(raw_jobs: list[RawJob], provider, keywords: list[str] | None = None) -> int:
     session: Session = get_session()
     saved = 0
+    enriched = 0
 
     try:
         for raw in raw_jobs:
@@ -82,6 +83,24 @@ def _store_jobs(raw_jobs: list[RawJob], provider, keywords: list[str] | None = N
             ).scalar_one_or_none()
 
             if existing:
+                # Self-heal: re-collection often has richer data (descriptions
+                # from API content params). Fill gaps, never overwrite good data.
+                changed = False
+                if not existing.description and normalized.get("description"):
+                    existing.description = normalized["description"]
+                    changed = True
+                if not existing.skills and normalized.get("skills"):
+                    existing.skills = normalized["skills"]
+                    changed = True
+                if not existing.experience_required and normalized.get("experience_required"):
+                    existing.experience_required = normalized["experience_required"]
+                    changed = True
+                if not existing.posted_at and normalized.get("posted_at"):
+                    existing.posted_at = normalized["posted_at"]
+                    changed = True
+                if changed:
+                    session.add(existing)
+                    enriched += 1
                 continue
 
             job = Job(
@@ -106,6 +125,7 @@ def _store_jobs(raw_jobs: list[RawJob], provider, keywords: list[str] | None = N
         from tracker.events import record_event, SYNC_RUN
         record_event(SYNC_RUN, "system", "collector", actor="system", metadata={
             "jobs_saved": saved,
+            "jobs_enriched": enriched,
             "keywords": keywords,
         })
     except Exception as e:

@@ -10,6 +10,17 @@ Consumes RankedOpportunity objects (from the retriever) and populates:
 from ai.models import RankedOpportunity
 from ai.normalizer import SENIORITY_MULTIPLIER
 
+# Companies that are extremely competitive for freshers despite generic titles
+TOP_TIER_COMPANIES = {
+    "nvidia", "google", "apple", "meta", "microsoft", "amazon",
+    "openai", "anthropic", "stripe", "gitlab", "vercel", "linear",
+    "notion", "datadog", "databricks", "snowflake", "palantir",
+    "figma", "canva", "airbnb", "uber", "netflix", "spotify",
+    "coinbase", "robinhood", "samsung", "intel", "amd",
+    "red hat", "redhat", "hashicorp", "mongodb", "elastic",
+    "cloudflare", "atlassian", "automattic",
+}
+
 
 def rank(opportunities: list[RankedOpportunity], user_skills: list[str] | None = None, user_experience_years: int = 1) -> list[RankedOpportunity]:
     """Rank a list of RankedOpportunities by estimated interview probability.
@@ -26,8 +37,7 @@ def rank(opportunities: list[RankedOpportunity], user_skills: list[str] | None =
             if company:
                 company_data = {
                     "fresher_friendly": company.fresher_friendly,
-                    "priority": company.priority,
-                    "backend_stack": company.backend_stack or [],
+                    "graduate_roles": company.graduate_roles,
                 }
         except Exception:
             pass
@@ -74,11 +84,30 @@ def _estimate_interview_probability(
     base = opp.score_vector.composite()
     seniority_mult = SENIORITY_MULTIPLIER.get(opp.seniority, 0.5)
     adjusted = base * seniority_mult
+
+    # Fresher-friendly companies get a boost
     if company_data.get("fresher_friendly") and user_experience_years <= 2:
         adjusted = min(adjusted + 0.1, 1.0)
+
+    # Penalty for missing skills
     if opp.missing_skills:
         penalty = min(len(opp.missing_skills) * 0.05, 0.2)
         adjusted = max(adjusted - penalty, 0.0)
+
+    # Company reputation penalty: top-tier companies are harder for freshers
+    company_lower = (opp.company or "").lower().strip()
+    is_top_tier = any(t in company_lower for t in TOP_TIER_COMPANIES) or company_lower in TOP_TIER_COMPANIES
+    if is_top_tier and user_experience_years <= 2 and not company_data.get("graduate_roles"):
+        adjusted *= 0.4
+
+    # Generic "Software Engineer" at top companies gets treated as senior-level for freshers
+    title_lower = (opp.title or "").lower()
+    if is_top_tier and user_experience_years <= 2:
+        if opp.seniority == "mid" and not any(
+            kw in title_lower for kw in ["intern", "junior", "fresher", "entry", "graduate", "campus"]
+        ):
+            adjusted *= 0.5
+
     return int(min(adjusted * 100, 100))
 
 

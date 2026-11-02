@@ -8,6 +8,10 @@ DB_PATH = Path(os.environ.get("JOBZO_DB_PATH", str(Path.home() / ".jobzo" / "job
 
 def run_migrations(engine):
     """Run pending Alembic migrations. Idempotent."""
+    if os.environ.get("JOBZO_SKIP_MIGRATIONS") == "1":
+        return
+    import logging
+    log = logging.getLogger("jobzo.migration")
     try:
         from alembic.config import Config
         from alembic.command import upgrade
@@ -16,8 +20,7 @@ def run_migrations(engine):
         cfg.set_main_option("sqlalchemy.url", str(engine.url))
         upgrade(cfg, "head")
     except Exception as e:
-        import logging
-        logging.getLogger("jobzo").warning("Migration skipped: %s", e)
+        log.debug("Migration skipped: %s", e)
 
 
 def get_engine(db_path: str | None = None):
@@ -27,6 +30,8 @@ def get_engine(db_path: str | None = None):
     with engine.connect() as conn:
         conn.execute(text("PRAGMA journal_mode=WAL"))
         conn.commit()
+    from database.models import Base
+    Base.metadata.create_all(engine)
     run_migrations(engine)
     return engine
 

@@ -2,6 +2,10 @@
 
 **Architecture v1.0** — closed-loop adaptive decision system. Frozen. No new abstractions, providers, or subsystems will be added unless an experiment proves they unlock measurable value.
 
+> The human-approved action pipeline (approval queue, contact verification,
+> outreach, follow-ups) is documented separately in [PIPELINE.md](PIPELINE.md).
+> It composes these existing signals rather than replacing the decision core.
+
 ---
 
 ## System overview

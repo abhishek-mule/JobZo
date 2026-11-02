@@ -3,6 +3,9 @@ rss:
   urls:
     - https://hnrss.org/jobs
 
+yc_workatastartup:
+  enabled: true
+
 company_pages:
   enabled: true
   concurrency: 5
